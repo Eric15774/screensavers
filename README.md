@@ -24,6 +24,7 @@ Each page is a full-screen science display that runs on its own. Every few secon
 |---|---|---|
 | **Periodic Table** | Zooms in on a random element and shows its mass, state, melting and boiling points, density, electron configuration, discovery and uses. | [Open](https://eric15774.github.io/screensavers/periodic-table/) |
 | **Chart of the Nuclides** | Isotopes, half-lives and decay modes across the chart of the nuclides. | [Open](https://eric15774.github.io/screensavers/nuclides/) |
+| **The Element Hourglass** | All 118 elements fall one at a time through an hourglass in order of atomic number, piling up in the bottom bulb. As each one passes the neck, a card shows its mass, state, melting point, discovery and uses, with notes at milestones like the start of each period, the lanthanides and the transuranium elements. When the last one lands, the glass flips and starts over. | [Open](https://eric15774.github.io/screensavers/element-hourglass/) |
 | **SI Units and Prefixes** | The SI base units, derived units and metric prefixes. | [Open](https://eric15774.github.io/screensavers/si-units/) |
 
 ### Engineering and technology
@@ -90,6 +91,7 @@ laws-and-paradoxes/ Laws, Rules and Paradoxes
 fractals-and-chaos/ Fractals and Chaos
 periodic-table/     Periodic Table
 nuclides/           Chart of the Nuclides
+element-hourglass/  The Element Hourglass
 si-units/           SI Units and Prefixes
 ```
 

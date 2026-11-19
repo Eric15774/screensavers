@@ -14,6 +14,7 @@ Each page is a full-screen science display that runs on its own. Every few secon
 |---|---|---|
 | **The Solar System Today** | Where every planet is right now, worked out from NASA JPL orbital data. Each planet's card gives its current distance from the Sun and from Earth and how long a radio signal takes to get there. | [Open](https://eric15774.github.io/screensavers/solar-system/) |
 | **Earthquakes: The Last 24 Hours** | Every earthquake the U.S. Geological Survey recorded in the past day, drawn on a world map with the tectonic plate boundaries. It zooms in on the biggest quakes and shows the magnitude, depth, energy released and distance to the nearest plate boundary. | [Open](https://eric15774.github.io/screensavers/earthquakes/) |
+| **Satellites Above Us** | A live sky map of every tracked satellite above our horizon: space stations, telescopes, GPS, weather, geostationary and Starlink. A card cycles through them with height, speed, distance and where to look, says when one is in sunlight against a dark sky, and gives the time of the next ISS pass. Uses the browser's location if allowed, otherwise Lenape Tech. Add `?lat=40.8&lon=-79.5` to the address to set a spot. | [Open](https://eric15774.github.io/screensavers/satellites/) |
 | **Earth's History in One Day** | All 4.54 billion years of Earth's history squeezed into a 24-hour clock. The hand sweeps to 27 events, from Earth forming at midnight to the Industrial Revolution in the last 200th of a second. Includes Pennsylvania's coal and the rise of the Appalachians. | [Open](https://eric15774.github.io/screensavers/geologic-time/) |
 | **When This Light Left** | How long light takes to reach us from the Moon, the Sun, 18 stars and the Andromeda Galaxy, and what was happening on Earth when that light set out. The years are worked out from today's date. | [Open](https://eric15774.github.io/screensavers/starlight/) |
 | **Where in the World?** | A GeoGuessr-style game. A photo of one of 75 places fills the screen (landforms, volcanoes, glaciers, famous structures and a few Pennsylvania spots). Students click the map to guess. If nobody clicks, the map zooms in with three hints: the hemispheres, the latitude, then the country. Then it reveals the answer with a science fact, how far off the guess was, and points, and moves on. | [Open](https://eric15774.github.io/screensavers/where-in-the-world/) |
@@ -63,6 +64,7 @@ The pages are built to run all day. The Solar System and Earthquake pages reload
 - **Older computers:** The Mandelbrot zoom on the Fractals and Chaos page does heavy math in real time. On a slow classroom PC it may look choppy, but it still works.
 - **No setup:** Each screensaver is a single self-contained `index.html` file. There is nothing to install, and they work in any modern browser.
 - **Where in the World? photos:** Each photo is pulled live from Wikipedia, so it can change if someone edits the article. If a photo will not load, the page skips to another place.
+- **Location:** The satellite page asks the browser for its location the first time it opens. Click Allow for your own sky, or it uses Lenape Tech. The location stays in the browser and is not sent anywhere.
 - **Scale:** The solar system orbits are drawn closer together than they really are so all eight planets fit. The page says so on screen.
 - **Diesel numbers:** Temperatures and pressures on the diesel page are approximate values from a simple model of a turbocharged truck engine.
 - **Star distances:** Distances to far-off stars like Betelgeuse, Polaris and Deneb are uncertain, and the cards give the range astronomers report.
@@ -76,6 +78,7 @@ The pages are built to run all day. The Solar System and Earthquake pages reload
 - Game guessing map: [Natural Earth](https://www.naturalearthdata.com/) 1:50m countries (public domain) via [world-atlas](https://github.com/topojson/world-atlas), built into the page, so no API key is needed
 - Game answer map: [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors' standard tiles (free, no key). If they are blocked, the page falls back to the Natural Earth map
 - Map drawing: [Leaflet](https://leafletjs.com/) (BSD-2) and [topojson-client](https://github.com/topojson/topojson-client) (ISC), both included in the page
+- Satellite orbits: [CelesTrak](https://celestrak.org/) GP element sets (from the U.S. Space Force 18th Space Defense Squadron), worked out in the browser with [satellite.js](https://github.com/shashwatak/satellite-js) (MIT, included in the page). The page saves the orbit data in the browser and downloads it again only every 8 hours, as CelesTrak asks.
 - Planet positions: NASA JPL approximate Keplerian orbital elements (E. M. Standish)
 - Geologic time spans: International Commission on Stratigraphy chart
 - Element and nuclide data: Eric Longwell's data workbooks, also in the [spreadsheets](https://github.com/eric15774/spreadsheets) repo
@@ -86,6 +89,7 @@ The pages are built to run all day. The Solar System and Earthquake pages reload
 index.html          Home page linking to every screensaver
 solar-system/       The Solar System Today
 earthquakes/        Earthquakes: The Last 24 Hours
+satellites/         Satellites Above Us
 geologic-time/      Earth's History in One Day
 starlight/          When This Light Left
 constellations/     Constellations

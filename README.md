@@ -16,6 +16,7 @@ Each page is a full-screen science display that runs on its own. Every few secon
 | **Earthquakes: The Last 24 Hours** | Every earthquake the U.S. Geological Survey recorded in the past day, drawn on a world map with the tectonic plate boundaries. It zooms in on the biggest quakes and shows the magnitude, depth, energy released and distance to the nearest plate boundary. | [Open](https://eric15774.github.io/screensavers/earthquakes/) |
 | **Earth's History in One Day** | All 4.54 billion years of Earth's history squeezed into a 24-hour clock. The hand sweeps to 27 events, from Earth forming at midnight to the Industrial Revolution in the last 200th of a second. Includes Pennsylvania's coal and the rise of the Appalachians. | [Open](https://eric15774.github.io/screensavers/geologic-time/) |
 | **When This Light Left** | How long light takes to reach us from the Moon, the Sun, 18 stars and the Andromeda Galaxy, and what was happening on Earth when that light set out. The years are worked out from today's date. | [Open](https://eric15774.github.io/screensavers/starlight/) |
+| **Where in the World?** | A GeoGuessr-style game. A photo of one of 75 places fills the screen (landforms, volcanoes, glaciers, famous structures and a few Pennsylvania spots). Students click the map to guess. If nobody clicks, the map zooms in with three hints: the hemispheres, the latitude, then the country. Then it reveals the answer with a science fact, how far off the guess was, and points, and moves on. | [Open](https://eric15774.github.io/screensavers/where-in-the-world/) |
 | **Constellations** | A star map that tours the 88 constellations. | [Open](https://eric15774.github.io/screensavers/constellations/) |
 
 ### Physics and chemistry
@@ -51,7 +52,7 @@ Each page is a full-screen science display that runs on its own. Every few secon
 
 | Control | What it does |
 |---|---|
-| Click or **Space** | Skip to the next item |
+| Click or **Space** | Skip to the next item (on Where in the World?, clicks on the map are guesses) |
 | **F** | Toggle full screen |
 
 The pages are built to run all day. The Solar System and Earthquake pages reload themselves every few hours so their data stays fresh.
@@ -61,6 +62,7 @@ The pages are built to run all day. The Solar System and Earthquake pages reload
 - **Internet:** Every page needs a connection to load. The earthquake page also checks the USGS feed every 5 minutes. If the connection drops, it keeps showing the last data it got.
 - **Older computers:** The Mandelbrot zoom on the Fractals and Chaos page does heavy math in real time. On a slow classroom PC it may look choppy, but it still works.
 - **No setup:** Each screensaver is a single self-contained `index.html` file. There is nothing to install, and they work in any modern browser.
+- **Where in the World? photos:** Each photo is pulled live from Wikipedia, so it can change if someone edits the article. If a photo will not load, the page skips to another place.
 - **Scale:** The solar system orbits are drawn closer together than they really are so all eight planets fit. The page says so on screen.
 - **Diesel numbers:** Temperatures and pressures on the diesel page are approximate values from a simple model of a turbocharged truck engine.
 - **Star distances:** Distances to far-off stars like Betelgeuse, Polaris and Deneb are uncertain, and the cards give the range astronomers report.
@@ -70,6 +72,8 @@ The pages are built to run all day. The Solar System and Earthquake pages reload
 - Earthquakes: [USGS Earthquake Hazards Program](https://earthquake.usgs.gov/earthquakes/feed/) live GeoJSON feed
 - Plate boundaries: Peter Bird (2003), *An updated digital model of plate boundaries*, via [fraxen/tectonicplates](https://github.com/fraxen/tectonicplates)
 - World map: [Natural Earth](https://www.naturalearthdata.com/) 1:110m land
+- Place photos: lead images of English Wikipedia articles, from [Wikimedia Commons](https://commons.wikimedia.org/), loaded live
+- Game map tiles: [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors and [CARTO](https://carto.com/attributions), drawn with [Leaflet](https://leafletjs.com/) (BSD-2 license, included in the page)
 - Planet positions: NASA JPL approximate Keplerian orbital elements (E. M. Standish)
 - Geologic time spans: International Commission on Stratigraphy chart
 - Element and nuclide data: Eric Longwell's data workbooks, also in the [spreadsheets](https://github.com/eric15774/spreadsheets) repo
@@ -83,6 +87,7 @@ earthquakes/        Earthquakes: The Last 24 Hours
 geologic-time/      Earth's History in One Day
 starlight/          When This Light Left
 constellations/     Constellations
+where-in-the-world/ Where in the World?
 simple-machines/    Simple Machines
 diesel-engine/      How a Diesel Engine Works
 units-history/      Where Our Units Came From

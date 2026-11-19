@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Element Hourglass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; font-family: Inter, Arial, sans-serif; color: #e9edf5; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  body.idle { cursor: none; }
+  #card {
+    position: fixed; width: min(440px, 90vw); box-sizing: border-box; padding: 22px 24px 20px;
+    background: rgba(13, 19, 38, 0.95); border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    opacity: 0; transition: opacity .6s; pointer-events: none;
+  }
+  #card.show { opacity: 1; }
+  #card.right { right: 5vw; top: 50%; transform: translateY(-50%); }
+  #card.bottom { left: 0; right: 0; margin: 0 auto; bottom: 2vh; width: min(460px, 94vw); padding: 16px 18px 14px; }
+  .count { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #ffc857; font-weight: 600; margin-bottom: 12px; }
+  .head { display: flex; align-items: center; gap: 16px; }
+  .tile { width: 74px; height: 74px; border-radius: 10px; color: #141822; position: relative; flex: none; }
+  .tile .z { position: absolute; left: 7px; top: 5px; font-size: 13px; font-weight: 600; }
+  .tile .s { position: absolute; left: 0; right: 0; top: 19px; text-align: center; font-size: 34px; font-weight: 800; }
+  .head h1 { margin: 0; font-size: 30px; font-weight: 800; }
+  .chip { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 9px; border-radius: 99px; color: #141822; margin-top: 6px; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin-top: 16px; }
+  .label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #8b96ad; margin-bottom: 3px; }
+  .val { font-size: 17px; font-weight: 600; }
+  .row { margin-top: 13px; }
+  .txt { font-size: 15px; color: #d3d9e4; line-height: 1.4; }
+  .note { margin-top: 14px; padding: 9px 12px; border-radius: 10px; background: rgba(255,200,87,.1); border: 1px solid rgba(255,200,87,.35); font-size: 14px; color: #ffe2a6; line-height: 1.4; }
+  .bar { margin-top: 16px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; }
+  .bar div { height: 100%; background: #ffc857; border-radius: 3px; }
+  #card.bottom .head h1 { font-size: 24px; }
+  #card.bottom .tile { width: 60px; height: 60px; }
+  #card.bottom .tile .s { top: 16px; font-size: 27px; }
+  #card.bottom .val { font-size: 15px; }
+  #card.bottom .txt, #card.bottom .note { font-size: 13px; }
+  #card.bottom .facts { gap: 8px 14px; margin-top: 10px; }
+  #card.bottom .row { margin-top: 9px; }
+  #title { position: fixed; left: 24px; top: 18px; pointer-events: none; }
+  #title h2 { margin: 0; font-size: 22px; font-weight: 800; }
+  #title div { font-size: 13px; color: #8b96ad; margin-top: 3px; }
+  #fs { position: fixed; right: 16px; top: 14px; background: rgba(255,255,255,.1); color: #e9edf5; border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 7px 12px; font: 600 13px Inter, Arial, sans-serif; cursor: pointer; transition: opacity .6s; }
+  body.idle #fs { opacity: 0; pointer-events: none; }
+  #hint { position: fixed; left: 24px; bottom: 16px; font-size: 12px; color: #6f7a92; transition: opacity .6s; }
+  body.idle #hint { opacity: 0; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title"><h2>The Element Hourglass</h2><div>All 118 elements pour through, one at a time, in order of atomic number</div></div>
+<div id="card"></div>
+<button id="fs" type="button">Full screen</button>
+<div id="hint">Click or press Space to drop the next element</div>
+<script>
+const DATA = [{"z":1,"sym":"H","name":"Hydrogen","period":1,"mass":"1.008","state":"g","mp":-259.1,"year":"1766","uses":"Rocket fuel","source":"Water, methane"},{"z":2,"sym":"He","name":"Helium","period":1,"mass":"4.003","state":"g","mp":-272.2,"year":"1895","uses":"Cryogenics, blimps","source":"Natural gas, air"},{"z":3,"sym":"Li","name":"Lithium","period":2,"mass":"6.968","state":"s","mp":180.5,"year":"1817","uses":"Batteries, lubricant","source":"Spodumene (silicate)"},{"z":4,"sym":"Be","name":"Beryllium","period":2,"mass":"9.012","state":"s","mp":1278.0,"year":"1797","uses":"Cu alloys, X-ray windows","source":"Beryl (silicate)"},{"z":5,"sym":"B","name":"Boron","period":2,"mass":"10.81","state":"s","mp":2079.0,"year":"1808","uses":"Borax, glass making(B2O3)","source":"Na and Ca borates (misc)"},{"z":6,"sym":"C","name":"Carbon","period":2,"mass":"12.01","state":"s","mp":3367.0,"year":"Ancient times","uses":"Fuel(coal), lubricant","source":"Coal, Petroleum, Natural gas"},{"z":7,"sym":"N","name":"Nitrogen","period":2,"mass":"14.01","state":"g","mp":-209.9,"year":"1772","uses":"Fertilizer, cryogenics","source":"Air"},{"z":8,"sym":"O","name":"Oxygen","period":2,"mass":"16.00","state":"g","mp":-218.4,"year":"1774","uses":"Rocket fuel, steel mfr.","source":"Air"},{"z":9,"sym":"F","name":"Fluorine","period":2,"mass":"19.00","state":"g","mp":-219.8,"year":"1886","uses":"Fluorocarbons, toothpaste","source":"Fluorite (misc)"},{"z":10,"sym":"Ne","name":"Neon","period":2,"mass":"20.18","state":"g","mp":-248.0,"year":"1898","uses":"Neon signs","source":"Air"},{"z":11,"sym":"Na","name":"Sodium","period":3,"mass":"22.99","state":"s","mp":97.8,"year":"1807","uses":"Lamps, table salt","source":"Halite (misc)"},{"z":12,"sym":"Mg","name":"Magnesium","period":3,"mass":"24.31","state":"s","mp":649.0,"year":"1808","uses":"Alloys, flash bulbs","source":"Seawater, magnesite"},{"z":13,"sym":"Al","name":"Aluminum","period":3,"mass":"26.98","state":"s","mp":660.0,"year":"1825","uses":"Al cans & foil, reflectors","source":"Bauxite (oxide)"},{"z":14,"sym":"Si","name":"Silicon","period":3,"mass":"28.09","state":"s","mp":1410.0,"year":"1824","uses":"Comp chip, lubricant, glass","source":"Quartz (oxide)"},{"z":15,"sym":"P","name":"Phosphorus","period":3,"mass":"30.97","state":"s","mp":44.1,"year":"1669","uses":"Fertilizer, detergents","source":"Apatite (phosphate)"},{"z":16,"sym":"S","name":"Sulfur","period":3,"mass":"32.07","state":"s","mp":112.8,"year":"Ancient times","uses":"Rubber, batteries (H2SO4)","source":"Sulfur, pyrite, natural gas"},{"z":17,"sym":"Cl","name":"Chlorine","period":3,"mass":"35.45","state":"g","mp":-101.0,"year":"1774","uses":"Bleach (NaOCl), PVC pipe","source":"Halite, brine (misc)"},{"z":18,"sym":"Ar","name":"Argon","period":3,"mass":"39.95","state":"g","mp":-189.2,"year":"1894","uses":"Lasers, light bulbs","source":"Air"},{"z":19,"sym":"K","name":"Potassium","period":4,"mass":"39.10","state":"s","mp":63.25,"year":"1807","uses":"Fertilizer, low-Na salt","source":"Sylvite, carnallite (misc)"},{"z":20,"sym":"Ca","name":"Calcium","period":4,"mass":"40.08","state":"s","mp":839.0,"year":"1808","uses":"Lime, cement","source":"Calcite (oxide)"},{"z":21,"sym":"Sc","name":"Scandium","period":4,"mass":"44.96","state":"s","mp":1541.0,"year":"1879","uses":"No significant uses","source":"U extractn by-product"},{"z":22,"sym":"Ti","name":"Titanium","period":4,"mass":"47.87","state":"s","mp":1660.0,"year":"1791","uses":"Steel, white pigment(TiO2)","source":"Ilmenite, rutile(oxide)"},{"z":23,"sym":"V","name":"Vanadium","period":4,"mass":"50.94","state":"s","mp":1890.0,"year":"1830","uses":"Tool steel, V2O5 catalyst","source":"U, Pb vanadates (misc)"},{"z":24,"sym":"Cr","name":"Chromium","period":4,"mass":"52.00","state":"s","mp":1857.0,"year":"1798","uses":"CrO2 tape, paint, steel","source":"Chromite (oxide)"},{"z":25,"sym":"Mn","name":"Manganese","period":4,"mass":"54.94","state":"s","mp":1244.0,"year":"1774","uses":"Steel, dry cells(MnO2)","source":"Pyrolusite, psilomelane(oxide)"},{"z":26,"sym":"Fe","name":"Iron","period":4,"mass":"55.85","state":"s","mp":1535.0,"year":"Ancient times","uses":"Steel","source":"Hematite, magnetite(oxide)"},{"z":27,"sym":"Co","name":"Cobalt","period":4,"mass":"58.93","state":"s","mp":1495.0,"year":"1737","uses":"Magnets, Co glass (blue)","source":"Co sulfides & arsenides"},{"z":28,"sym":"Ni","name":"Nickel","period":4,"mass":"58.69","state":"s","mp":1453.0,"year":"1751","uses":"Alloys, coins, batteries","source":"Sulfides, oxide/silicates"},{"z":29,"sym":"Cu","name":"Copper","period":4,"mass":"63.55","state":"s","mp":1083.0,"year":"Ancient times","uses":"Wire, bronze, coins","source":"Cu pyrite, chalcocite(sulfide)"},{"z":30,"sym":"Zn","name":"Zinc","period":4,"mass":"65.38","state":"s","mp":419.6,"year":"1600","uses":"Batteries, galvanizing","source":"Sphalerite (sulfide)"},{"z":31,"sym":"Ga","name":"Gallium","period":4,"mass":"69.72","state":"s","mp":29.8,"year":"1875","uses":"Photocells, transistors","source":"Bauxite (oxide)"},{"z":32,"sym":"Ge","name":"Germanium","period":4,"mass":"72.63","state":"s","mp":947.4,"year":"1886","uses":"Transistor, wide-ang lens","source":"Zn smelting by-product"},{"z":33,"sym":"As","name":"Arsenic","period":4,"mass":"74.92","state":"s","mp":817.0,"year":"1600","uses":"Photocells (GaAs), poisons","source":"Arsenopyrite, enargite (misc)"},{"z":34,"sym":"Se","name":"Selenium","period":4,"mass":"78.97","state":"s","mp":217.0,"year":"1818","uses":"Xerography, medicines","source":"Cu smelting by-product"},{"z":35,"sym":"Br","name":"Bromine","period":4,"mass":"79.90","state":"l","mp":-7.2,"year":"1826","uses":"Pesticides, photography","source":"Seawater, brines"},{"z":36,"sym":"Kr","name":"Krypton","period":4,"mass":"83.80","state":"g","mp":-157.0,"year":"1898","uses":"Lamps, UV-laser","source":"Air"},{"z":37,"sym":"Rb","name":"Rubidium","period":5,"mass":"85.47","state":"s","mp":38.9,"year":"1861","uses":"Photocells","source":"Li extractn by-product"},{"z":38,"sym":"Sr","name":"Strontium","period":5,"mass":"87.62","state":"s","mp":769.0,"year":"1808","uses":"Fireworks (red flame)","source":"Celestite (sulfide)"},{"z":39,"sym":"Y","name":"Yttrium","period":5,"mass":"88.91","state":"s","mp":1523.0,"year":"1794","uses":"YAG laser, TV phosphor","source":"Xenotime (phosphate)"},{"z":40,"sym":"Zr","name":"Zirconium","period":5,"mass":"91.22","state":"s","mp":1852.0,"year":"1789","uses":"Deodorants, fuel rod clad","source":"Zircon (silicate)"},{"z":41,"sym":"Nb","name":"Niobium","period":5,"mass":"92.91","state":"s","mp":2468.0,"year":"1801","uses":"Stainless steels, magnets","source":"Columbite (oxide)"},{"z":42,"sym":"Mo","name":"Molybdenum","period":5,"mass":"95.95","state":"s","mp":2617.0,"year":"1781","uses":"Catalysts, tool steel","source":"Molybdenite (sulfide)"},{"z":43,"sym":"Tc","name":"Technetium","period":5,"mass":"98","state":"s","mp":2172.0,"year":"1939","uses":"Medical imaging agents","source":"Synthetic (U fission)"},{"z":44,"sym":"Ru","name":"Ruthenium","period":5,"mass":"101.1","state":"s","mp":2310.0,"year":"1844","uses":"Catalysts","source":"Nickel ores (sulfides)"},{"z":45,"sym":"Rh","name":"Rhodium","period":5,"mass":"102.9","state":"s","mp":1966.0,"year":"1803","uses":"Catalysts, elec. contacts","source":"Nickel ores (sulfides)"},{"z":46,"sym":"Pd","name":"Palladium","period":5,"mass":"106.4","state":"s","mp":1554.0,"year":"1803","uses":"Catalysts, dental crowns","source":"Nickel ores (sulfides)"},{"z":47,"sym":"Ag","name":"Silver","period":5,"mass":"107.9","state":"s","mp":962.0,"year":"Ancient times","uses":"Film(AgBr), coins, jewelry","source":"Argentite (sulfide)"},{"z":48,"sym":"Cd","name":"Cadmium","period":5,"mass":"112.4","state":"s","mp":320.9,"year":"1817","uses":"Battery, yel. pigment(CdS)","source":"Sphalerite (sulfide)"},{"z":49,"sym":"In","name":"Indium","period":5,"mass":"114.8","state":"s","mp":156.6,"year":"1863","uses":"Transistors, photocells","source":"Zn/Pb smelting by-product"},{"z":50,"sym":"Sn","name":"Tin","period":5,"mass":"118.7","state":"s","mp":232.0,"year":"Ancient times","uses":"Solder, pewter, bronze","source":"Cassiterite (oxide)"},{"z":51,"sym":"Sb","name":"Antimony","period":5,"mass":"121.8","state":"s","mp":631.0,"year":"1600","uses":"Pb alloy(battery), dyeing","source":"Stibnite (sulfide)"},{"z":52,"sym":"Te","name":"Tellurium","period":5,"mass":"127.6","state":"s","mp":449.5,"year":"1783","uses":"Semiconductors, steel","source":"Zn/Pb smelting by-product"},{"z":53,"sym":"I","name":"Iodine","period":5,"mass":"126.9","state":"s","mp":113.5,"year":"1811","uses":"Nutrient, antiseptic","source":"Brines, Chilean nitrate (misc)"},{"z":54,"sym":"Xe","name":"Xenon","period":5,"mass":"131.3","state":"g","mp":-111.8,"year":"1898","uses":"UV-laser, hi intens lamps","source":"Air"},{"z":55,"sym":"Cs","name":"Cesium","period":6,"mass":"132.9","state":"s","mp":28.4,"year":"1860","uses":"Photocells, IR lamps","source":"Li extractn by-product"},{"z":56,"sym":"Ba","name":"Barium","period":6,"mass":"137.3","state":"s","mp":725.0,"year":"1808","uses":"X-ray imaging agnt(BaSO4)","source":"Barite (sulfate)"},{"z":57,"sym":"La","name":"Lanthanum","period":6,"mass":"138.9","state":"s","mp":920.0,"year":"1839","uses":"Lighter flints, CRTs","source":"Monazite(phosphate), bastnaesite"},{"z":58,"sym":"Ce","name":"Cerium","period":6,"mass":"140.1","state":"s","mp":798.0,"year":"1803","uses":"Self-cleaning ovens(CeO2)","source":"Monazite(phosphate), bastnaesite"},{"z":59,"sym":"Pr","name":"Praseodymium","period":6,"mass":"140.9","state":"s","mp":931.0,"year":"1885","uses":"Alloys, Welder's mask","source":"Monazite(phosphate), bastnaesite"},{"z":60,"sym":"Nd","name":"Neodymium","period":6,"mass":"144.2","state":"s","mp":1016.0,"year":"1885","uses":"Alloys, Welder's mask","source":"Monazite(phosphate), bastnaesite"},{"z":61,"sym":"Pm","name":"Promethium","period":6,"mass":"145","state":"s","mp":1042.0,"year":"1945","uses":"Nuclear battery","source":"Synthetic"},{"z":62,"sym":"Sm","name":"Samarium","period":6,"mass":"150.4","state":"s","mp":1074.0,"year":"1880","uses":"Alloys, headphones","source":"Monazite(phosphate), bastnaesite"},{"z":63,"sym":"Eu","name":"Europium","period":6,"mass":"152.0","state":"s","mp":822.0,"year":"1901","uses":"Alloys, color TV phosphor","source":"Monazite(phosphate), bastnaesite"},{"z":64,"sym":"Gd","name":"Gadolinium","period":6,"mass":"157.3","state":"s","mp":1313.0,"year":"1880","uses":"Alloys, CD disk","source":"Monazite(phosphate), bastnaesite"},{"z":65,"sym":"Tb","name":"Terbium","period":6,"mass":"158.9","state":"s","mp":1365.0,"year":"1843","uses":"Alloys","source":"Monazite(phosphate), bastnaesite"},{"z":66,"sym":"Dy","name":"Dysprosium","period":6,"mass":"162.5","state":"s","mp":1412.0,"year":"1886","uses":"Alloys, CD disk","source":"Monazite(phosphate), bastnaesite"},{"z":67,"sym":"Ho","name":"Holmium","period":6,"mass":"164.9","state":"s","mp":1474.0,"year":"1879","uses":"Alloys","source":"Monazite(phosphate), bastnaesite"},{"z":68,"sym":"Er","name":"Erbium","period":6,"mass":"167.3","state":"s","mp":1529.0,"year":"1843","uses":"Alloys, photogr. filter","source":"Monazite(phosphate), bastnaesite"},{"z":69,"sym":"Tm","name":"Thulium","period":6,"mass":"168.9","state":"s","mp":1545.0,"year":"1879","uses":"Alloys","source":"Monazite(phosphate), bastnaesite"},{"z":70,"sym":"Yb","name":"Ytterbium","period":6,"mass":"173.1","state":"s","mp":819.0,"year":"1879","uses":"Alloys","source":"Monazite(phosphate), bastnaesite"},{"z":71,"sym":"Lu","name":"Lutetium","period":6,"mass":"175.0","state":"s","mp":1663.0,"year":"1907","uses":"Alloys","source":"Monazite(phosphate), bastnaesite"},{"z":72,"sym":"Hf","name":"Hafnium","period":6,"mass":"178.5","state":"s","mp":2227.0,"year":"1923","uses":"Nuclear control rods","source":"Zircon (silicate)"},{"z":73,"sym":"Ta","name":"Tantalum","period":6,"mass":"180.9","state":"s","mp":2996.0,"year":"1802","uses":"Surg. implants, heat exch.","source":"Tantalite (oxide)"},{"z":74,"sym":"W","name":"Tungsten","period":6,"mass":"183.8","state":"s","mp":3410.0,"year":"1783","uses":"WC drill bits, bulb wire","source":"Scheelite, wolframite(oxide)"},{"z":75,"sym":"Re","name":"Rhenium","period":6,"mass":"186.2","state":"s","mp":3180.0,"year":"1925","uses":"Catalysts, thermocouples","source":"Molybdenite (sulfide)"},{"z":76,"sym":"Os","name":"Osmium","period":6,"mass":"190.2","state":"s","mp":3045.0,"year":"1804","uses":"Hard alloys, phono needles","source":"Nickel ores (sulfides)"},{"z":77,"sym":"Ir","name":"Iridium","period":6,"mass":"192.2","state":"s","mp":2410.0,"year":"1804","uses":"Pt/Ir sparkplugs","source":"Nickel ores (sulfides)"},{"z":78,"sym":"Pt","name":"Platinum","period":6,"mass":"195.1","state":"s","mp":1772.0,"year":"1748","uses":"Jewelry, catalysts","source":"Nickel ores (sulfides)"},{"z":79,"sym":"Au","name":"Gold","period":6,"mass":"197.0","state":"s","mp":1064.0,"year":"Ancient times","uses":"Jewelry, electronics","source":"Gold, gold bearing rock (misc)"},{"z":80,"sym":"Hg","name":"Mercury","period":6,"mass":"200.6","state":"l","mp":-38.9,"year":"Ancient times","uses":"Amalgams, Cl2, NaOH prod.","source":"Cinnabar (sulfide)"},{"z":81,"sym":"Tl","name":"Thallium","period":6,"mass":"204.4","state":"s","mp":303.0,"year":"1861","uses":"IR detectors, photomult.","source":"Zn/Pb smelting by-product"},{"z":82,"sym":"Pb","name":"Lead","period":6,"mass":"207.2","state":"s","mp":327.5,"year":"Ancient times","uses":"Batteries, solder, paints","source":"Galena (sulfide)"},{"z":83,"sym":"Bi","name":"Bismuth","period":6,"mass":"209.0","state":"s","mp":271.0,"year":"1600","uses":"Antacid, fusible alloy","source":"Pb smelting by-product"},{"z":84,"sym":"Po","name":"Polonium","period":6,"mass":"209","state":"s","mp":254.0,"year":"1898","uses":"Thermoelectric power","source":"Pitchblende, synthetic"},{"z":85,"sym":"At","name":"Astatine","period":6,"mass":"210","state":"s","mp":302.0,"year":"1940","uses":"","source":"Synthetic(Th or U decay)"},{"z":86,"sym":"Rn","name":"Radon","period":6,"mass":"222","state":"g","mp":-71.0,"year":"1900","uses":"Earthquake prediction","source":"Synthetic(Ra-226 decay)"},{"z":87,"sym":"Fr","name":"Francium","period":7,"mass":"223","state":"s","mp":27.0,"year":"1939","uses":"","source":"Synthetic(U-235 decay)"},{"z":88,"sym":"Ra","name":"Radium","period":7,"mass":"226","state":"s","mp":700.0,"year":"1898","uses":"Neutron source","source":"Pitchblende(U-238 decay)"},{"z":89,"sym":"Ac","name":"Actinium","period":7,"mass":"227","state":"s","mp":1050.0,"year":"1899","uses":"Thermoelectric power","source":"Synthetic(U-235 decay)"},{"z":90,"sym":"Th","name":"Thorium","period":7,"mass":"232.0","state":"s","mp":1750.0,"year":"1829","uses":"Gas mantles (ThO2)","source":"Monazite(phosphate), U extractn"},{"z":91,"sym":"Pa","name":"Protactinium","period":7,"mass":"231.0","state":"s","mp":1570.0,"year":"1917","uses":"","source":"Synthetic(U-235 decay)"},{"z":92,"sym":"U","name":"Uranium","period":7,"mass":"238.0","state":"s","mp":1132.0,"year":"1789","uses":"Nuclear reactor fuel","source":"Uranite (oxide)"},{"z":93,"sym":"Np","name":"Neptunium","period":7,"mass":"237","state":"s","mp":640.0,"year":"1940","uses":"","source":"Synthetic"},{"z":94,"sym":"Pu","name":"Plutonium","period":7,"mass":"244","state":"s","mp":641.0,"year":"1940","uses":"Weapon fuel, pacemakers","source":"Synthetic"},{"z":95,"sym":"Am","name":"Americium","period":7,"mass":"243","state":"s","mp":994.0,"year":"1944","uses":"Smoke detector","source":"Synthetic"},{"z":96,"sym":"Cm","name":"Curium","period":7,"mass":"247","state":"s","mp":1340.0,"year":"1944","uses":"Thermoelec. pwr, n source","source":"Synthetic"},{"z":97,"sym":"Bk","name":"Berkelium","period":7,"mass":"247","state":"s","mp":986.0,"year":"1949","uses":"","source":"Synthetic"},{"z":98,"sym":"Cf","name":"Californium","period":7,"mass":"251","state":"","mp":null,"year":"1949","uses":"Neutron source","source":"Synthetic"},{"z":99,"sym":"Es","name":"Einsteinium","period":7,"mass":"252","state":"","mp":null,"year":"1954","uses":"","source":"Synthetic"},{"z":100,"sym":"Fm","name":"Fermium","period":7,"mass":"257","state":"","mp":null,"year":"1954","uses":"","source":"Synthetic"},{"z":101,"sym":"Md","name":"Mendelevium","period":7,"mass":"258","state":"","mp":null,"year":"1955","uses":"","source":"Synthetic"},{"z":102,"sym":"No","name":"Nobelium","period":7,"mass":"259","state":"","mp":null,"year":"1958","uses":"","source":"Synthetic"},{"z":103,"sym":"Lr","name":"Lawrencium","period":7,"mass":"262","state":"","mp":null,"year":"1961","uses":"","source":"Synthetic"},{"z":104,"sym":"Rf","name":"Rutherfordium","period":7,"mass":"267","state":"","mp":null,"year":"1969","uses":"","source":""},{"z":105,"sym":"Db","name":"Dubnium","period":7,"mass":"268","state":"","mp":null,"year":"1970","uses":"","source":""},{"z":106,"sym":"Sg","name":"Seaborgium","period":7,"mass":"271","state":"","mp":null,"year":"1974","uses":"","source":""},{"z":107,"sym":"Bh","name":"Bohrium","period":7,"mass":"272","state":"","mp":null,"year":"1981","uses":"","source":""},{"z":108,"sym":"Hs","name":"Hassium","period":7,"mass":"270","state":"","mp":null,"year":"1984","uses":"","source":""},{"z":109,"sym":"Mt","name":"Meitnerium","period":7,"mass":"276","state":"","mp":null,"year":"1982","uses":"","source":""},{"z":110,"sym":"Ds","name":"Darmstadtium","period":7,"mass":"281","state":"","mp":null,"year":"1994","uses":"","source":""},{"z":111,"sym":"Rg","name":"Roentgentium","period":7,"mass":"280","state":"","mp":null,"year":"1994","uses":"","source":""},{"z":112,"sym":"Cn","name":"Copernicum","period":7,"mass":"285","state":"","mp":null,"year":"1996","uses":"","source":""},{"z":113,"sym":"Nh","name":"Nihonium","period":7,"mass":"284","state":"","mp":null,"year":"2004","uses":"","source":""},{"z":114,"sym":"Fl","name":"Flerovium","period":7,"mass":"289","state":"","mp":null,"year":"1999","uses":"","source":""},{"z":115,"sym":"Mc","name":"Moscovium","period":7,"mass":"288","state":"","mp":null,"year":"2003","uses":"","source":""},{"z":116,"sym":"Lv","name":"Livermorium","period":7,"mass":"293","state":"","mp":null,"year":"2000","uses":"","source":""},{"z":117,"sym":"Ts","name":"Tennessine","period":7,"mass":"292","state":"","mp":null,"year":"2010","uses":"","source":""},{"z":118,"sym":"Og","name":"Oganesson","period":7,"mass":"294","state":"","mp":null,"year":"2002","uses":"","source":""}];
+
+const CATS = {
+  alkali:     { color: "#ef8a8a", label: "Alkali metal", z: [3, 11, 19, 37, 55, 87] },
+  alkaline:   { color: "#f5ad73", label: "Alkaline earth metal", z: [4, 12, 20, 38, 56, 88] },
+  transition: { color: "#f2d473", label: "Transition metal", z: [] },
+  post:       { color: "#a9d68d", label: "Post-transition metal", z: [13, 31, 49, 50, 81, 82, 83, 84, 113, 114, 115, 116] },
+  metalloid:  { color: "#74d3bd", label: "Metalloid", z: [5, 14, 32, 33, 51, 52] },
+  nonmetal:   { color: "#86b6f2", label: "Nonmetal", z: [1, 6, 7, 8, 15, 16, 34] },
+  halogen:    { color: "#a5dcf2", label: "Halogen", z: [9, 17, 35, 53, 85, 117] },
+  noble:      { color: "#bba3f2", label: "Noble gas", z: [2, 10, 18, 36, 54, 86, 118] },
+  lanthanide: { color: "#f2a9d2", label: "Lanthanide", z: [] },
+  actinide:   { color: "#d4b08c", label: "Actinide", z: [] }
+};
+function category(z) {
+  if (z >= 57 && z <= 71) return "lanthanide";
+  if (z >= 89 && z <= 103) return "actinide";
+  for (const k in CATS) if (CATS[k].z.includes(z)) return k;
+  return "transition";
+}
+DATA.forEach(d => { d.cat = category(d.z); });
+const N = DATA.length;
+
+// Short notes that appear at milestones along the way
+const NOTES = {
+  1: "Period 1 begins with the simplest atom there is: one proton and one electron.",
+  2: "Period 1 is complete. The first electron shell holds only two electrons.",
+  3: "Period 2 begins. Electrons start filling a second shell.",
+  10: "Period 2 is complete. A noble gas closes every row of the table.",
+  11: "Period 3 begins. Notice how sodium acts a lot like lithium, right above it.",
+  18: "Period 3 is complete. Argon makes up almost 1% of the air you breathe.",
+  19: "Period 4 begins, and with it the first row of transition metals.",
+  21: "The transition metals begin. They fill the d subshell.",
+  26: "Iron is the end of the line for fusion in stars. Heavier elements come from supernovas and colliding neutron stars.",
+  36: "Period 4 is complete.",
+  37: "Period 5 begins.",
+  43: "Technetium is the lightest element with no stable isotopes.",
+  54: "Period 5 is complete.",
+  55: "Period 6 begins. It is 32 elements long because of the lanthanides.",
+  57: "The lanthanides begin. These 15 elements fill the 4f subshell and are hard to tell apart chemically.",
+  79: "Gold. Nearly all of Earth's gold sank to the core when the planet was young. What we mine arrived later.",
+  82: "Lead is the heaviest element with stable isotopes. Everything after it is radioactive.",
+  86: "Period 6 is complete. Radon is a radioactive gas that seeps up from the ground in parts of Pennsylvania.",
+  87: "Period 7 begins.",
+  89: "The actinides begin. They fill the 5f subshell, and all of them are radioactive.",
+  92: "Uranium is the heaviest element found in large amounts in nature.",
+  93: "Neptunium is the first transuranium element, heavier than uranium. From here on, nearly everything is made in reactors or particle accelerators.",
+  104: "The superheavy elements begin. Most of these have been made only a few atoms at a time.",
+  118: "Oganesson completes Period 7 and the whole table. Only about five atoms of it have ever been detected."
+};
+
+// ---------- canvas and layout ----------
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+let W, H, DPR, L; // L = layout
+const landscape = () => innerWidth / innerHeight > 1.15;
+
+function halfW(d) { // half-width of a bulb at normalized distance d from the neck (0 = neck, 1 = cap)
+  if (d <= 0) return L.nw;
+  if (d <= 0.72) return L.nw + (L.mw - L.nw) * Math.pow(Math.sin(d / 0.72 * Math.PI / 2), 0.85);
+  const u = Math.min(1, (d - 0.72) / 0.28);
+  return L.mw * (1 - 0.22 * u * u);
+}
+
+function buildSlots(fromNeck) {
+  // Returns rows of slots for one bulb. h = height of slot center measured from the bulb floor
+  // (top bulb: the floor is the neck, bottom bulb: the floor is the cap).
+  const { s, bh } = L, pitch = s * 1.06, rh = s * 1.02, slots = [];
+  for (let r = 0; ; r++) {
+    const h0 = r * rh + (fromNeck ? s * 0.15 : s * 0.06), h1 = h0 + s;
+    if (h1 > bh * 0.97) break;
+    const dA = fromNeck ? h0 / bh : (bh - h0) / bh, dB = fromNeck ? h1 / bh : (bh - h1) / bh;
+    const avail = Math.min(halfW(dA), halfW(dB)) - s * 0.56;
+    if (avail < 0) continue;
+    const off = (r % 2 && avail >= pitch * 0.5) ? 0.5 : 0;
+    for (let j = -40; j <= 40; j++) {
+      const x = (j + off) * pitch;
+      if (Math.abs(x) <= avail) slots.push({ r, x, h: (h0 + h1) / 2, c: Math.abs(x) / pitch });
+    }
+  }
+  return slots;
+}
+
+function layout() {
+  DPR = window.devicePixelRatio || 1;
+  W = canvas.width = Math.round(innerWidth * DPR);
+  H = canvas.height = Math.round(innerHeight * DPR);
+  const land = landscape();
+  const HG = land ? H * 0.84 : Math.min(H * 0.56, W * 1.25);
+  L = { cx: land ? W * 0.37 : W / 2, cy: land ? H * 0.53 : H * 0.36, HG };
+  L.ct = HG * 0.035;
+  L.bh = HG / 2 - L.ct;
+  L.mw = L.bh * 0.58;
+  let s = L.bh * 0.13;
+  for (let k = 0; k < 80; k++, s *= 0.97) {
+    L.s = s; L.nw = s * 0.66;
+    const top = buildSlots(true).sort((a, b) => a.r - b.r || a.c - b.c);
+    const bot = buildSlots(false).map(o => ({ ...o, p: o.r + o.c * 0.8 })).sort((a, b) => a.p - b.p || a.c - b.c);
+    if (top.length < N || bot.length < N) continue;
+    const topSel = top.slice(0, N), botSel = bot.slice(0, N);
+    if (topSel[N - 1].h > L.bh * 0.86 || botSel[N - 1].h > L.bh * 0.9) continue;
+    // Drain order for the top bulb: the surface caves in from the middle first, like a crater
+    topSel.sort((a, b) => (b.r - b.c * 0.8) - (a.r - a.c * 0.8) || a.c - b.c);
+    L.top = topSel; L.bot = botSel;
+    break;
+  }
+  if (cardState) renderCard();
+}
+// screen position of a slot
+const topPos = i => ({ x: L.cx + L.top[i].x, y: L.cy - L.top[i].h });
+const botPos = i => ({ x: L.cx + L.bot[i].x, y: L.cy + L.bh - L.bot[i].h });
+
+// ---------- drawing helpers ----------
+function rrect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function drawTile(d, x, y, scale = 1, glow = 0, rot = 0) {
+  const s = L.s * scale;
+  ctx.save();
+  ctx.translate(x, y);
+  if (rot) ctx.rotate(rot);
+  if (glow > 0) { ctx.shadowColor = "rgba(255,220,140," + glow + ")"; ctx.shadowBlur = s * 0.9; }
+  ctx.fillStyle = CATS[d.cat].color;
+  rrect(-s / 2, -s / 2, s, s, s * 0.14);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#141822";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const big = s >= 30 * DPR;
+  ctx.font = `800 ${Math.round(s * (d.sym.length > 1 ? 0.42 : 0.5))}px Inter, Arial, sans-serif`;
+  ctx.fillText(d.sym, 0, big ? s * 0.08 : s * 0.02);
+  if (big) {
+    ctx.font = `600 ${Math.round(s * 0.2)}px Inter, Arial, sans-serif`;
+    ctx.textAlign = "left";
+    ctx.fillText(d.z, -s * 0.42, -s * 0.3);
+  }
+  ctx.restore();
+}
+
+function glassPath() {
+  const { cx, cy, bh } = L, steps = 60;
+  ctx.beginPath();
+  for (let i = 0; i <= steps; i++) { const d = 1 - i / steps; ctx.lineTo(cx - halfW(d), cy - d * bh); }
+  for (let i = 0; i <= steps; i++) { const d = i / steps; ctx.lineTo(cx - halfW(d), cy + d * bh); }
+  for (let i = 0; i <= steps; i++) { const d = 1 - i / steps; ctx.lineTo(cx + halfW(d), cy + d * bh); }
+  for (let i = 0; i <= steps; i++) { const d = i / steps; ctx.lineTo(cx + halfW(d), cy - d * bh); }
+  ctx.closePath();
+}
+function drawGlassBack() {
+  glassPath();
+  const g = ctx.createLinearGradient(L.cx - L.mw, 0, L.cx + L.mw, 0);
+  g.addColorStop(0, "rgba(140,170,230,0.10)"); g.addColorStop(0.5, "rgba(140,170,230,0.03)"); g.addColorStop(1, "rgba(140,170,230,0.08)");
+  ctx.fillStyle = g; ctx.fill();
+}
+function drawGlassFront() {
+  glassPath();
+  ctx.lineWidth = Math.max(1.5, L.s * 0.08);
+  ctx.strokeStyle = "rgba(200,220,255,0.55)";
+  ctx.stroke();
+  // highlights
+  const { cx, cy, bh } = L;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = Math.max(2, L.s * 0.16);
+  for (const sgn of [-1, 1]) {
+    ctx.beginPath();
+    for (let i = 0; i <= 30; i++) { const d = 0.3 + 0.55 * i / 30; ctx.lineTo(cx - halfW(d) * 0.8, cy + sgn * d * bh); }
+    ctx.stroke();
+  }
+  ctx.lineCap = "butt";
+}
+function drawFrame() {
+  const { cx, cy, bh, ct, mw, s } = L;
+  const cw = mw + s * 1.6, post = mw + s * 0.95;
+  // posts
+  for (const sx of [-1, 1]) {
+    const g = ctx.createLinearGradient(cx + sx * post - s * 0.25, 0, cx + sx * post + s * 0.25, 0);
+    g.addColorStop(0, "#5a3b22"); g.addColorStop(0.45, "#a8794c"); g.addColorStop(1, "#4a2f1a");
+    ctx.fillStyle = g;
+    ctx.fillRect(cx + sx * post - s * 0.22, cy - bh, s * 0.44, bh * 2);
+  }
+  // caps
+  for (const sy of [-1, 1]) {
+    const y = sy < 0 ? cy - bh - ct : cy + bh;
+    const g = ctx.createLinearGradient(0, y, 0, y + ct);
+    g.addColorStop(0, "#9b6d42"); g.addColorStop(0.5, "#c08e5c"); g.addColorStop(1, "#6b4527");
+    ctx.fillStyle = g;
+    rrect(cx - cw, y, cw * 2, ct, ct * 0.3);
+    ctx.fill();
+  }
+}
+
+// ---------- state ----------
+const DROP_EVERY = 7000;
+const T_SLIDE = 650;
+let phase = "run";      // run, done, flip, settle
+let next = 0;           // index of the next element to drop
+let falling = null;     // { i, t0, from, landT }
+let landed = [];        // landed[i] = time it landed, or undefined
+let lastDrop = -1e9, phaseT = 0, settleFrom = [];
+let cardState = null;   // { type, i }
+const grains = [];
+
+function fallTime(fromY, toY) {
+  const g = L.bh * 2.6; // px per s^2
+  return Math.sqrt(2 * Math.max(1, toY - fromY) / g) * 1000;
+}
+function dropNext(now) {
+  if (next >= N || falling) return;
+  const p = topPos(next);
+  falling = { i: next, t0: now, from: p };
+  lastDrop = now;
+  next++;
+}
+
+// ---------- card ----------
+const card = document.getElementById("card");
+const STATE = { s: "Solid", l: "Liquid", g: "Gas" };
+const temp = v => v === null || v === undefined ? "Unknown" : `${v} °C`;
+function renderCard() {
+  if (!cardState) { card.className = card.className.replace(" show", ""); return; }
+  if (cardState.type === "done") {
+    card.innerHTML = `
+      <div class="count">All 118 elements have fallen</div>
+      <div class="txt">From hydrogen, the lightest, to oganesson, the heaviest. Every substance you have ever touched is built from the elements in that pile.</div>
+      <div class="note">Flipping the hourglass to start again.</div>
+      <div class="bar"><div style="width:100%"></div></div>`;
+  } else {
+    const d = DATA[cardState.i], c = CATS[d.cat];
+    const disc = d.year === "Ancient times" ? "Ancient times" : d.year || "Unknown";
+    const synthetic = /synthetic/i.test(d.source);
+    const note = NOTES[d.z];
+    card.innerHTML = `
+      <div class="count">Element ${d.z} of ${N} &nbsp;·&nbsp; Period ${d.period}</div>
+      <div class="head">
+        <div class="tile" style="background:${c.color}"><span class="z">${d.z}</span><span class="s">${d.sym}</span></div>
+        <div><h1>${d.name}</h1><span class="chip" style="background:${c.color}">${c.label}</span></div>
+      </div>
+      <div class="facts">
+        <div><div class="label">Atomic mass</div><div class="val">${d.mass}</div></div>
+        <div><div class="label">At room temperature</div><div class="val">${STATE[d.state] || "Unknown"}</div></div>
+        <div><div class="label">Melting point</div><div class="val">${temp(d.mp)}</div></div>
+        <div><div class="label">Discovered</div><div class="val">${disc}</div></div>
+      </div>
+      ${d.uses ? `<div class="row"><div class="label">Used for</div><div class="txt">${d.uses}</div></div>` : ""}
+      ${d.source ? `<div class="row"><div class="label">${synthetic ? "Where it comes from" : "Found in"}</div><div class="txt">${synthetic ? "Made in laboratories and reactors" : d.source}</div></div>` : ""}
+      ${note ? `<div class="note">${note}</div>` : ""}
+      <div class="bar"><div style="width:${(d.z / N * 100).toFixed(1)}%"></div></div>`;
+  }
+  card.className = (landscape() ? "right" : "bottom") + " show";
+}
+function setCard(st) { cardState = st; renderCard(); }
+
+// ---------- main loop ----------
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+let prev = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H);
+  if (!L.top) { requestAnimationFrame(frame); return; }
+
+  // phase logic
+  if (phase === "run") {
+    if (!falling && next < N && now - lastDrop >= DROP_EVERY) dropNext(now);
+    if (!falling && next >= N && landed[N - 1] && now - landed[N - 1] > 2500) { phase = "done"; phaseT = now; setCard({ type: "done" }); }
+  } else if (phase === "done" && now - phaseT > 6000) {
+    phase = "flip"; phaseT = now;
+  } else if (phase === "flip" && now - phaseT > 2600) {
+    phase = "settle"; phaseT = now;
+    settleFrom = DATA.map((d, i) => { const p = botPos(i); return { x: 2 * L.cx - p.x, y: 2 * L.cy - p.y }; });
+    landed = []; next = 0; setCard(null);
+  } else if (phase === "settle" && now - phaseT > 2200) {
+    phase = "run"; lastDrop = now - DROP_EVERY + 1200;
+  }
+
+  // flip rotation
+  ctx.save();
+  if (phase === "flip") {
+    const a = ease(Math.min(1, (now - phaseT) / 2600)) * Math.PI;
+    const k = 1 - 0.28 * Math.sin(a); // shrink a little mid-turn so the corners stay on screen
+    ctx.translate(L.cx, L.cy); ctx.rotate(a); ctx.scale(k, k); ctx.translate(-L.cx, -L.cy);
+  }
+
+  drawFrame();
+  drawGlassBack();
+
+  // tiles still in the top bulb
+  if (phase === "settle") {
+    for (let i = 0; i < N; i++) {
+      const delay = (L.top[i].h / L.bh) * 700;
+      const u = ease(Math.max(0, Math.min(1, (now - phaseT - delay) / 1300)));
+      const a = settleFrom[i], b = topPos(i);
+      drawTile(DATA[i], a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u, 1, 0, Math.PI * (1 - u));
+    }
+  } else {
+    const startTop = falling ? falling.i + 1 : next;
+    if (phase === "run") for (let i = startTop; i < N; i++) { const p = topPos(i); drawTile(DATA[i], p.x, p.y); }
+    // landed tiles in the bottom bulb
+    for (let i = 0; i < N; i++) {
+      if (landed[i] === undefined) continue;
+      const p = botPos(i), age = (now - landed[i]) / 1000;
+      const glow = phase === "run" ? Math.max(0, 0.9 - age * 0.6) : 0;
+      drawTile(DATA[i], p.x, p.y, 1, glow);
+    }
+  }
+
+  // trickle of fine sand through the neck while running
+  if (phase === "run" && next < N) {
+    for (let k = 0; k < 2; k++) grains.push({ x: L.cx + (Math.random() - 0.5) * L.nw * 0.6, y: L.cy, vy: L.bh * 0.3 * Math.random() });
+  }
+  let pileTop = L.cy + L.bh;
+  for (let i = 0; i < N; i++) if (landed[i] !== undefined && Math.abs(L.bot[i].x) < L.s) pileTop = Math.min(pileTop, botPos(i).y - L.s / 2);
+  ctx.fillStyle = "rgba(255,214,150,0.55)";
+  for (let k = grains.length - 1; k >= 0; k--) {
+    const g = grains[k];
+    g.vy += L.bh * 2.6 * dt; g.y += g.vy * dt;
+    if (g.y > pileTop || phase !== "run") { grains.splice(k, 1); continue; }
+    ctx.fillRect(g.x, g.y, 1.4 * DPR, 2.2 * DPR);
+  }
+
+  // the falling element
+  if (falling) {
+    const f = falling, d = DATA[f.i], el = now - f.t0;
+    const entry = { x: L.cx, y: L.cy - L.s * 0.55 };
+    const target = botPos(f.i);
+    if (el < T_SLIDE) {
+      const u = ease(el / T_SLIDE);
+      drawTile(d, f.from.x + (entry.x - f.from.x) * u, f.from.y + (entry.y - f.from.y) * u, 1 + 0.25 * u, u);
+    } else {
+      if (!f.passed) { f.passed = true; setCard({ type: "el", i: f.i }); }
+      const tf = fallTime(entry.y, target.y), u = Math.min(1, (el - T_SLIDE) / tf);
+      const y = entry.y + (target.y - entry.y) * u * u;
+      const xu = Math.max(0, (u - 0.35) / 0.65);
+      const x = entry.x + (target.x - entry.x) * ease(xu);
+      drawTile(d, x, y, 1.25 - 0.25 * u, 1);
+      if (u >= 1) { landed[f.i] = now; falling = null; }
+    }
+  }
+
+  drawGlassFront();
+  ctx.restore();
+  requestAnimationFrame(frame);
+}
+
+layout();
+requestAnimationFrame(frame);
+addEventListener("resize", layout);
+
+// ---------- controls ----------
+function skip() { if (phase === "run" && !falling) dropNext(performance.now()); }
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" || e.code === "ArrowRight") { e.preventDefault(); skip(); }
+  if (e.key === "f" || e.key === "F") toggleFs();
+});
+canvas.addEventListener("click", skip);
+function toggleFs() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  } catch (e) {}
+}
+document.getElementById("fs").addEventListener("click", toggleFs);
+let idleTimer;
+function wake() { document.body.classList.remove("idle"); clearTimeout(idleTimer); idleTimer = setTimeout(() => document.body.classList.add("idle"), 3000); }
+document.addEventListener("mousemove", wake); document.addEventListener("touchstart", wake); wake();
+</script>
+</body>
+</html>

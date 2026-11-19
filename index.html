@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Science Screensavers</title>
+<style>
+:root{--bg:#070b16;--card:#111a2e;--text:#e8ecf6;--muted:#93a0bf;--accent:#ffc857;--line:rgba(255,255,255,.1)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;padding:5vh 5vw;min-height:100vh}
+h1{font-size:clamp(28px,3.4vw,48px);font-weight:700}
+.intro{color:var(--muted);max-width:62ch;line-height:1.5;margin:.6em 0 2.2em;font-size:clamp(14px,1.1vw,18px)}
+h2{font-size:14px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin:2em 0 .9em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px}
+a.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;color:inherit;text-decoration:none;transition:transform .15s,border-color .15s}
+a.card:hover{transform:translateY(-3px);border-color:var(--accent)}
+.card .ic{font-size:30px}
+.card h3{font-size:20px;margin:.4em 0 .3em}
+.card p{color:var(--muted);font-size:14px;line-height:1.5}
+.card .live{display:inline-block;margin-top:.8em;font-size:11px;font-weight:700;letter-spacing:.06em;color:#0b1020;background:var(--accent);border-radius:6px;padding:2px 7px}
+footer{margin-top:3em;color:var(--muted);font-size:13px;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>Science Screensavers</h1>
+<p class="intro">Full-screen pages for classroom displays. Each one changes on its own every few seconds. Click or press Space to skip ahead, and press F for full screen.</p>
+
+<h2>Earth and sky</h2>
+<div class="grid">
+<a class="card" href="solar-system/"><div class="ic">🪐</div><h3>The Solar System Today</h3><p>Where every planet is right now, with live distances from the Sun and from Earth.</p><span class="live">LIVE</span></a>
+<a class="card" href="earthquakes/"><div class="ic">🌋</div><h3>Earthquakes: The Last 24 Hours</h3><p>Every quake the USGS recorded in the past day, plotted against the tectonic plate boundaries.</p><span class="live">LIVE</span></a>
+<a class="card" href="geologic-time/"><div class="ic">🕛</div><h3>Earth's History in One Day</h3><p>4.54 billion years squeezed into a 24-hour clock, from Earth forming to the last fraction of a second.</p></a>
+<a class="card" href="starlight/"><div class="ic">✨</div><h3>When This Light Left</h3><p>How long starlight takes to reach us, and what was happening on Earth when it set out.</p></a>
+<a class="card" href="constellations/"><div class="ic">🌌</div><h3>Constellations</h3><p>A star map that tours the 88 constellations.</p></a>
+</div>
+
+<h2>Physics and chemistry</h2>
+<div class="grid">
+<a class="card" href="periodic-table/"><div class="ic">⚛️</div><h3>Periodic Table</h3><p>Zooms in on a random element with a card of key facts.</p></a>
+<a class="card" href="nuclides/"><div class="ic">☢️</div><h3>Chart of the Nuclides</h3><p>Isotopes, half-lives and decay modes across the whole chart.</p></a>
+<a class="card" href="si-units/"><div class="ic">📏</div><h3>SI Units and Prefixes</h3><p>The base units, derived units and metric prefixes.</p></a>
+</div>
+
+<footer>Made by Eric Longwell for Lenape Technical School classrooms. Earthquake data from the USGS Earthquake Hazards Program. Planet positions from NASA JPL orbital elements.</footer>
+</body>
+</html>

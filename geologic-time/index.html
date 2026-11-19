@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Earth's History in One Day</title>
+<style>
+:root{--bg:#0d0b09;--panel:rgba(30,24,18,.9);--text:#f2ece2;--muted:#b3a691;--accent:#ffb347;--line:rgba(255,255,255,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+body.idle{cursor:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#title{position:fixed;left:3vw;top:3vh;max-width:36vw}
+#title h1{font-size:clamp(20px,2.5vw,40px);font-weight:600}
+#title p{color:var(--muted);font-size:clamp(12px,1vw,16px);margin-top:.4em;line-height:1.45}
+#card{position:fixed;right:3vw;top:50%;transform:translateY(-50%);width:min(32vw,460px);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,2vw,30px);transition:opacity .7s}
+#card.hide{opacity:0}
+#card .clock{font-size:clamp(28px,3.3vw,54px);font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1}
+#card .clock small{display:block;font-size:.24em;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:.4em}
+#card h2{font-size:clamp(20px,2vw,32px);margin:.6em 0 .2em;line-height:1.2}
+#card .ago{color:var(--muted);font-size:clamp(13px,1.1vw,18px)}
+#card .era{display:inline-block;margin-top:.6em;padding:2px 10px;border-radius:999px;font-size:clamp(11px,.85vw,13px);font-weight:600;color:#1a140e}
+#card .fact{margin-top:1em;padding-top:1em;border-top:1px solid var(--line);font-size:clamp(13px,1.1vw,18px);line-height:1.55}
+#scale{position:fixed;left:3vw;bottom:5vh;color:var(--muted);font-size:clamp(11px,.9vw,14px);line-height:1.7;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+#scale b{color:var(--text)}
+#help{position:fixed;right:3vw;bottom:2vh;color:var(--muted);font-size:12px;opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title"><h1>Earth's History in One Day</h1><p>Squeeze all 4.54 billion years of Earth's history into a single 24-hour day. Earth forms at midnight. Right now is the stroke of the next midnight.</p></div>
+<div id="scale">On this clock:<br><b>1 hour</b> = 189 million years<br><b>1 minute</b> = 3.2 million years<br><b>1 second</b> = about 52,500 years</div>
+<div id="card" class="hide"></div>
+<div id="help">Click or Space: next event &nbsp; F: full screen</div>
+<script>
+const AGE=4540; // million years
+// Eons and Phanerozoic eras (millions of years ago), ICS chart
+const EONS=[{n:"Hadean",s:4540,e:4031,c:"#ae027e"},{n:"Archean",s:4031,e:2500,c:"#f0047f"},{n:"Proterozoic",s:2500,e:538.8,c:"#f73563"},{n:"Phanerozoic",s:538.8,e:0,c:"#9ad9dd"}];
+const ERAS=[{n:"Paleozoic",s:538.8,e:251.9,c:"#99c08d"},{n:"Mesozoic",s:251.9,e:66,c:"#67c5ca"},{n:"Cenozoic",s:66,e:0,c:"#f2f91d"}];
+// ma = millions of years ago
+const EV=[
+{ma:4540,t:"Earth forms",f:"Earth grew from dust and rock orbiting the young Sun. Its surface was molten, and it was hit constantly by leftover debris."},
+{ma:4510,t:"The Moon forms",f:"The leading idea is that a Mars-sized body slammed into the young Earth. Debris from the collision gathered in orbit and became the Moon."},
+{ma:4400,t:"Oldest known crystals",f:"Tiny zircon crystals from the Jack Hills of Western Australia are about 4.4 billion years old. Their chemistry hints that liquid water already existed."},
+{ma:4030,t:"Oldest known rocks",f:"The Acasta Gneiss in northern Canada is about 4 billion years old, among the oldest intact rock on Earth's surface."},
+{ma:3500,t:"Clear signs of life",f:"Stromatolites, layered mounds built by colonies of microbes, show that simple life was well established. For the next 2 billion years, life was almost all single cells."},
+{ma:2400,t:"The Great Oxidation Event",f:"Cyanobacteria had been making oxygen by photosynthesis. Oxygen finally began to build up in the air, and it rusted iron in the oceans into the banded iron formations we mine today."},
+{ma:1800,t:"Complex cells appear",f:"Eukaryotic cells, with a nucleus and internal parts, show up in the fossil record. Every plant, animal and fungus is built from this kind of cell."},
+{ma:720,t:"Snowball Earth",f:"Ice may have reached all the way to the equator for millions of years at a time. Life survived in pockets of open water and around volcanic vents."},
+{ma:575,t:"First large complex life",f:"The Ediacaran creatures were soft-bodied, often flat and quilted, and unlike almost anything alive today."},
+{ma:538.8,t:"The Cambrian explosion",f:"Most major animal groups appear in the fossil record within a few tens of millions of years, including the first animals with eyes, shells and skeletons."},
+{ma:470,t:"Plants reach land",f:"Simple plants similar to mosses began covering bare rock. They started making soil and changed the air and climate."},
+{ma:375,t:"Fish crawl onto land",f:"Tiktaalik, found in 2004, was a fish with a neck, sturdy fins and lungs. Animals like it led to the first four-legged land animals."},
+{ma:300,t:"Pennsylvania's coal forms",f:"Huge swamp forests of giant ferns and tree-sized club mosses grew and were buried. Their remains became the coal of western Pennsylvania. This span of time is called the Pennsylvanian Period, named for our state."},
+{ma:290,t:"The Appalachians rise",f:"As the continents crashed together into the supercontinent Pangaea, the Appalachian Mountains were pushed up, possibly as tall as the Rockies are today. Erosion has been wearing them down ever since."},
+{ma:251.9,t:"The Great Dying",f:"The end-Permian extinction was the worst in Earth's history. About 90 percent of ocean species disappeared, likely after enormous volcanic eruptions in Siberia changed the climate."},
+{ma:233,t:"First dinosaurs",f:"Early dinosaurs were small, fast, two-legged animals. Within about 30 million years they dominated life on land."},
+{ma:225,t:"First mammals",f:"The earliest true mammals were small, shrew-like and probably active at night. They lived alongside dinosaurs for about 160 million years."},
+{ma:200,t:"Pangaea breaks apart",f:"The supercontinent began splitting, and the Atlantic Ocean opened. It is still widening by a few centimeters a year, about as fast as your fingernails grow."},
+{ma:150,t:"Archaeopteryx",f:"This feathered animal with teeth, claws and a bony tail is one of the best examples of a transition between dinosaurs and birds."},
+{ma:130,t:"First flowering plants",f:"Flowers, fruits and the insects that pollinate them spread quickly. Today most plant species on land are flowering plants."},
+{ma:66,t:"The asteroid strikes",f:"An asteroid about 10 km wide hit near Chicxulub, Mexico. The non-bird dinosaurs died out, and mammals got their chance to spread and grow."},
+{ma:6.5,t:"Human and chimpanzee lines split",f:"Our ancestors and the ancestors of chimpanzees went separate ways. On this clock that happens only about 2 minutes before midnight."},
+{ma:2.6,t:"The Ice Ages begin",f:"Earth entered a cycle of glaciers advancing and retreating. Ice sheets reached into northern Pennsylvania and shaped its landscape."},
+{ma:0.3,t:"Modern humans appear",f:"The oldest fossils of Homo sapiens, from Morocco, are about 300,000 years old. On this clock, our whole species fits into the last 6 seconds."},
+{ma:0.0117,t:"The last Ice Age ends",f:"Glaciers retreated, the climate settled, and people began farming. All of farming, cities and written history fits into the last quarter of a second."},
+{ma:0.0052,t:"Writing is invented",f:"The first writing appears in Mesopotamia about 5,200 years ago. Everything ever written down fits into about one tenth of a second."},
+{ma:0.00025,t:"The Industrial Revolution",f:"Steam engines, coal and factories began reshaping the world about 250 years ago. On this clock, that is less than the last 200th of a second."}
+];
+
+function clockOf(ma){const sec=(AGE-ma)/AGE*86400;return sec}
+function clockText(ma){
+  const sec=clockOf(ma);const left=86400-sec;
+  if(left<1){return{main:"11:59:59."+String(Math.floor(sec%1*1000)).padStart(3,'0').slice(0,3)+" PM",sub:left.toFixed(left<0.01?4:2)+" seconds before midnight"}}
+  let h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
+  const ap=h>=12?"PM":"AM";let h12=h%12;if(h12===0)h12=12;
+  let sub;if(left<60)sub=left.toFixed(1)+" seconds before midnight";else if(left<3600)sub=Math.floor(left/60)+" min "+Math.round(left%60)+" s before midnight";else sub=Math.floor(left/3600)+" h "+Math.round(left%3600/60)+" min before midnight";
+  return{main:h12+":"+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0')+" "+ap,sub}}
+function agoText(ma){
+  if(ma>=1000)return(ma/1000).toLocaleString('en-US',{maximumFractionDigits:2})+" billion years ago";
+  if(ma>=1)return ma.toLocaleString('en-US',{maximumFractionDigits:1})+" million years ago";
+  return Math.round(ma*1e6).toLocaleString('en-US')+" years ago"}
+function eonOf(ma){if(ma<=538.8){for(const e of ERAS)if(ma<=e.s&&ma>=e.e)return e}for(const e of EONS)if(ma<=e.s&&ma>e.e)return e;return EONS[0]}
+
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');let W,H,DPR;
+function resize(){DPR=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+
+let idx=-1,start=0,hand=0,handTarget=0;const HOLD=14000;
+// angle: midnight at top, clockwise, full circle = 24 h
+const ang=ma=>-Math.PI/2+(AGE-ma)/AGE*Math.PI*2;
+function geom(){const cx=W*0.37,cy=H*0.58,R=Math.min(W*0.24,H*0.31);return{cx,cy,R}}
+
+function arc(cx,cy,r,w,a0,a1,col){ctx.lineCap='butt';ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.arc(cx,cy,r,a0,a1);ctx.stroke()}
+function frame(t){
+  ctx.fillStyle='#0d0b09';ctx.fillRect(0,0,W,H);
+  const{cx,cy,R}=geom();
+  // eon ring
+  for(const e of EONS){arc(cx,cy,R,R*0.13,ang(e.s),ang(e.e),e.c)}
+  // era ring (Phanerozoic)
+  for(const e of ERAS){arc(cx,cy,R*0.83,R*0.08,ang(e.s),ang(e.e),e.c)}
+  // labels
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const e of EONS){const a=(ang(e.s)+ang(e.e))/2;const r=R*1.14;ctx.fillStyle='#e9dfd0';ctx.font='600 '+Math.max(11,R*0.045)+'px system-ui';ctx.fillText(e.n,cx+Math.cos(a)*r,cy+Math.sin(a)*r)}
+  for(const e of ERAS){const a=(ang(e.s)+ang(e.e))/2;const r=R*(e.n==='Cenozoic'?0.6:0.70);ctx.fillStyle='#cfc3b0';ctx.font=Math.max(10,R*0.036)+'px system-ui';ctx.fillText(e.n,cx+Math.cos(a)*r,cy+Math.sin(a)*r)}
+  // hour ticks
+  for(let h=0;h<24;h++){const a=-Math.PI/2+h/24*Math.PI*2;const r1=R*1.24,r2=R*(h%6?1.27:1.30);ctx.strokeStyle='rgba(240,230,210,.5)';ctx.lineWidth=h%6?1:2;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);ctx.lineTo(cx+Math.cos(a)*r2,cy+Math.sin(a)*r2);ctx.stroke();
+    if(h%3===0){const lbl=h===0?'Midnight':h===12?'Noon':(h%12)+(h<12?' AM':' PM');const r3=R*1.38;ctx.fillStyle='rgba(240,230,210,.65)';ctx.font=Math.max(10,R*0.04)+'px system-ui';ctx.fillText(lbl,cx+Math.cos(a)*r3,cy+Math.sin(a)*r3)}}
+  // event dots
+  for(let i=0;i<EV.length;i++){const a=ang(EV[i].ma);const r=R*1.205;ctx.fillStyle=i===idx?'#fff':'rgba(255,179,71,.75)';ctx.beginPath();ctx.arc(cx+Math.cos(a)*r,cy+Math.sin(a)*r,i===idx?5:2.5,0,7);ctx.fill()}
+  // hand sweeps toward target angle
+  hand+=(handTarget-hand)*0.04;
+  const a=-Math.PI/2+hand*Math.PI*2;
+  ctx.strokeStyle='#ffb347';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R*1.2,cy+Math.sin(a)*R*1.2);ctx.stroke();
+  // swept area glow
+    ctx.fillStyle='#ffb347';ctx.beginPath();ctx.arc(cx,cy,7,0,7);ctx.fill();
+  // center readout
+  const ev=EV[idx];
+  if(ev){ctx.fillStyle='#f2ece2';ctx.font='700 '+Math.max(14,R*0.085)+'px system-ui';ctx.fillText(clockText(ev.ma).main,cx,cy+R*0.25);
+    ctx.fillStyle='#b3a691';ctx.font=Math.max(10,R*0.04)+'px system-ui';ctx.fillText('on the 24-hour clock',cx,cy+R*0.36)}
+  // zoom inset for the final minute when the event is very recent
+  if(ev&&ev.ma<3){drawInset(ev,t)}
+  if(idx>=0&&performance.now()-start>HOLD)next();
+  requestAnimationFrame(frame);
+}
+function drawInset(ev,t){
+  // a bar showing the last 2 minutes before midnight, magnified
+  const{cx,cy,R}=geom();const x0=cx-R*0.9,x1=cx+R*0.9,y=cy-R*0.32;const span=60;// seconds
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(x0-12,y-34,x1-x0+24,64);
+  ctx.strokeStyle='#f2f91d';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
+  ctx.fillStyle='#e9dfd0';ctx.font='11px system-ui';ctx.textAlign='left';ctx.fillText('Magnified: the last minute',x0,y-20);ctx.textAlign='right';ctx.fillText('Midnight (today)',x1,y-20);ctx.textAlign='center';
+  for(const e of EV){if(e.ma>=3)continue;const left=86400-clockOf(e.ma);const x=x1-(left/span)*(x1-x0);const cur=e===ev;
+    ctx.fillStyle=cur?'#fff':'#ffb347';ctx.beginPath();ctx.arc(x,y,cur?6:3.5,0,7);ctx.fill();
+    if(cur){ctx.fillStyle='#fff';ctx.font='600 12px system-ui';ctx.fillText(e.t,Math.min(Math.max(x,x0+60),x1-60),y+20)}}
+}
+function next(){
+  const card=document.getElementById('card');card.classList.add('hide');
+  idx=(idx+1)%EV.length;start=performance.now();
+  if(idx===0){hand=0}
+  handTarget=(AGE-EV[idx].ma)/AGE;
+  setTimeout(()=>{const ev=EV[idx],c=clockText(ev.ma),er=eonOf(ev.ma);
+    card.innerHTML=`<div class="clock">${c.main}<small>${c.sub}</small></div><h2>${ev.t}</h2><div class="ago">${agoText(ev.ma)}</div>
+    <span class="era" style="background:${er.c}">${er.n}</span><div class="fact">${ev.f}</div>`;card.classList.remove('hide')},idx===0?300:700);
+}
+next();requestAnimationFrame(frame);
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();next()}if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}});
+addEventListener('click',next);
+let idleT;addEventListener('mousemove',()=>{document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),3000)});
+</script>
+</body>
+</html>

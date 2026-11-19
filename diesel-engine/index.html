@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How a Diesel Engine Works</title>
+<style>
+:root{--bg:#0e0f12;--panel:rgba(26,28,34,.94);--text:#eceef2;--muted:#9aa1ad;--accent:#ffb020;--line:rgba(255,255,255,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+body.idle{cursor:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#title{position:fixed;left:3vw;top:3vh;max-width:50vw}
+#title h1{font-size:clamp(20px,2.4vw,38px);font-weight:600}
+#title p{color:var(--muted);font-size:clamp(12px,1vw,16px);margin-top:.35em;line-height:1.45}
+#card{position:fixed;right:3vw;top:50%;transform:translateY(-50%);width:min(34vw,480px);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,2vw,30px);transition:opacity .7s}
+#card.hide{opacity:0}
+#card .kind{color:var(--accent);font-size:clamp(11px,.85vw,13px);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+#card h2{font-size:clamp(24px,2.6vw,42px);line-height:1.12;margin:.2em 0 .55em}
+#card p{font-size:clamp(14px,1.12vw,18px);line-height:1.55;margin-bottom:.8em}
+#card ul{margin:.2em 0 .6em 1.1em;font-size:clamp(13px,1.05vw,17px);line-height:1.55}
+#card .num{display:grid;grid-template-columns:1fr 1fr;gap:.8em 1.2em;margin-top:.6em}
+#card .num span{display:block;color:var(--muted);font-size:clamp(10px,.75vw,12px);text-transform:uppercase;letter-spacing:.06em}
+#card .num b{font-size:clamp(15px,1.3vw,21px)}
+#card .cdl{margin-top:.6em;padding-top:.8em;border-top:1px solid var(--line);color:var(--muted);font-size:clamp(12px,.95vw,15px);line-height:1.5}
+#card .cdl strong{color:var(--accent)}
+#help{position:fixed;right:3vw;bottom:2vh;color:var(--muted);font-size:12px;opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title"><h1>How a Diesel Engine Works</h1><p>One cylinder of a turbocharged truck diesel, slowed way down. A real one at highway speed fires each cylinder about 12 times every second.</p></div>
+<div id="card" class="hide"></div>
+<div id="help">Click or Space: next topic &nbsp; F: full screen</div>
+<script>
+const CARDS=[
+{k:'The big picture',h:'Four strokes, two turns',stroke:-1,b:`<p>Every power stroke takes four trips of the piston: <b>intake, compression, power, exhaust</b>. That is two full turns of the crankshaft.</p><p>Rudolf Diesel's goal was an engine far more efficient than the steam engines of his day.</p>
+<div class="num"><div><span>Crank turns per cycle</span><b>2</b></div><div><span>Power strokes per cycle</span><b>1 per cylinder</b></div><div><span>Big-truck cylinders</span><b>6 in a row</b></div><div><span>Engine size</span><b>13 to 15 liters</b></div><div><span>Power</span><b>400 to 600 hp</b></div><div><span>Diesel's patent</span><b>1893</b></div></div>`},
+{k:'Stroke 1',h:'Intake',stroke:0,b:`<p>The piston moves down and the intake valve opens. Fresh air rushes in to fill the cylinder.</p><p>A diesel pulls in <b>air only</b>, never a fuel and air mix. The engine has no throttle plate; it controls power by how much fuel it injects, not how much air it lets in.</p>`},
+{k:'Stroke 2',h:'Compression',stroke:1,b:`<p>Both valves close and the piston rises, squeezing the air into about <b>one seventeenth</b> of its starting volume.</p><p>Squeezing a gas quickly heats it. The air reaches roughly <b>500 to 650 °C</b>, far hotter than diesel fuel needs to catch fire on its own (about 210 °C).</p>
+<div class="num"><div><span>Compression ratio</span><b>about 17 : 1</b></div><div><span>Gasoline engine</span><b>about 10 : 1</b></div></div>`},
+{k:'Stroke 3',h:'Power',stroke:2,b:`<p>Just before the top, the injector sprays a fine mist of fuel at over <b>30,000 psi</b>. It ignites instantly in the hot air.</p><p>The burning gas pushes the piston down hard. The connecting rod turns that push into rotation of the crankshaft. This is the only stroke that makes power; the flywheel and other cylinders carry the engine through the rest.</p>`},
+{k:'Stroke 4',h:'Exhaust',stroke:3,b:`<p>The exhaust valve opens and the rising piston pushes the burned gas out.</p><p>That exhaust is still hot and moving fast, so the engine puts it to work spinning the turbocharger before it leaves the truck.</p>`},
+{k:'Compression ignition',h:'No spark plugs',stroke:1,b:`<p>A gasoline engine uses a spark to light its fuel. A diesel uses heat from compression alone. That is why diesels are called <b>compression-ignition</b> engines.</p><p>On a cold morning the air may not get hot enough at first, so many diesels use glow plugs or an intake grid heater to help them start.</p>`},
+{k:'Turbocharger',h:'Free power from waste heat',stroke:3,b:`<p>Exhaust gas spins a turbine wheel. A shaft connects it to a compressor wheel that packs extra air into the intake.</p><p>More air lets the engine burn more fuel, which makes more power from the same size engine. A charge air cooler cools the squeezed air first, because cool air is denser.</p>
+<div class="num"><div><span>Turbo speed</span><b>over 100,000 rpm</b></div><div><span>Boost</span><b>about 30 to 45 psi</b></div></div>`},
+{k:'Engine brake',h:'Turning the engine into a brake',stroke:1,b:`<p>An engine brake (often called a Jake brake) opens the exhaust valves near the top of the compression stroke. The squeezed air escapes before it can push the piston back down.</p><p>The engine spends energy compressing air and gets none back, which slows the truck without using the service brakes. That loud "brapp" is why some towns post "engine brake prohibited" signs.</p>
+<div class="cdl"><strong>CDL tip:</strong> on a long downgrade, pick a low gear before you start down and let the engine brake do the work. Overheated service brakes fade.</div>`},
+{k:'Air brakes',h:'The engine also makes the air for the brakes',stroke:-1,b:`<p>An air compressor driven by the engine fills storage tanks. A governor controls it.</p>
+<div class="num"><div><span>Governor cut-out</span><b>about 125 psi</b></div><div><span>Governor cut-in</span><b>about 100 psi</b></div><div><span>Low-air warning</span><b>at or above 60 psi</b></div><div><span>Spring brakes apply</span><b>20 to 45 psi</b></div></div>
+<div class="cdl"><strong>Why air?</strong> Strong springs hold the parking brakes on, and air pressure holds them off. If the air system fails, the springs stop the truck.</div>`},
+{k:'Why trucks use diesels',h:'Efficiency and torque',stroke:2,b:`<p>The high compression squeezes more work out of each drop of fuel. Diesel fuel also holds about <b>13% more energy</b> per gallon than gasoline.</p>
+<div class="num"><div><span>Big truck diesel</span><b>about 40 to 46% efficient</b></div><div><span>Car gas engine</span><b>about 25 to 35%</b></div><div><span>Peak torque</span><b>over 1,800 lb-ft</b></div><div><span>At only</span><b>about 1,000 rpm</b></div></div>
+<p style="margin-top:.8em">Many truck engines run a million miles before a major overhaul.</p>`},
+{k:'Clean exhaust',h:'DPF and DEF',stroke:3,b:`<p>Modern diesels clean their exhaust in two steps.</p><ul><li>The <b>diesel particulate filter</b> (DPF) traps soot, then burns it off during a "regen."</li><li><b>Diesel exhaust fluid</b> (DEF), a mix of 32.5% urea and water, is sprayed into the exhaust. A catalyst then turns harmful nitrogen oxides into nitrogen and water vapor.</li></ul>
+<div class="cdl"><strong>CDL tip:</strong> if the DEF tank runs dry, the engine will cut power until you refill it.</div>`},
+{k:'By the numbers',h:'Inside one cylinder at highway speed',stroke:-1,b:`<div class="num"><div><span>Engine speed</span><b>about 1,400 rpm</b></div><div><span>Power strokes per cylinder</span><b>about 12 per second</b></div><div><span>Peak cylinder pressure</span><b>over 2,500 psi</b></div><div><span>Peak flame temperature</span><b>about 2,000 °C</b></div><div><span>Injection pressure</span><b>over 30,000 psi</b></div><div><span>Fuel per injection</span><b>about a drop</b></div></div>`}
+];
+const STROKES=['Intake','Compression','Power','Exhaust'];
+const SCOL=['#4aa8ff','#7fd4ff','#ff7a2e','#8c8f96'];
+
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');let W,H,DPR;
+function resize(){DPR=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+
+const CR=17;
+function state(deg){ // deg 0..720, 0 = TDC at start of intake
+  const th=deg*Math.PI/180;const r=1,l=3.4;
+  const y=r*Math.cos(th)+Math.sqrt(l*l-r*r*Math.sin(th)**2); // distance crank center to pin
+  const top=r+l,bot=l-r;const x=(top-y)/(top-bot); // 0 at TDC, 1 at BDC
+  const Vc=1/(CR-1);const V=Vc+x; // in units of displacement
+  const Vb=Vc+1;let T,P,stroke=Math.floor(deg/180)%4;
+  if(stroke===0){T=50;P=40}
+  else if(stroke===1){T=(323*Math.pow(Vb/V,0.37))-273;P=40*Math.pow(Vb/V,1.35)}
+  else if(stroke===2){const k=Math.min(1,(deg-360)/18);const Tp=2000,Pp=2600;T=Math.max(650,(Tp+273)*Math.pow(Vc/V,0.3)-273);T=T*k+(1-k)*(323*Math.pow(Vb/V,0.37)-273);P=Pp*Math.pow(Vc/V,1.3)*k+(1-k)*40*Math.pow(Vb/V,1.35);}
+  else{T=600-150*((deg-540)/180);P=25}
+  return{x,th,stroke,T,P,pin:[Math.sin(th)*r,-Math.cos(th)*r],y};
+}
+
+let deg=0,last=performance.now();const CYCLE=9000; // ms per 720°
+let idx=-1,start=0;const HOLD=20000;let fuel=[];
+function geom(){const s=Math.min(W*0.05,H*0.058);return{cx:W*0.33,cy:H*0.62,s}}
+function lerpCol(a,b,f){const p=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];const A=p(a),B=p(b);return`rgb(${A.map((v,i)=>Math.round(v+(B[i]-v)*f)).join(',')})`}
+
+function draw(dt,t){
+  deg=(deg+dt/CYCLE*720)%720;
+  const st=state(deg);const{cx,cy,s}=geom();
+  ctx.fillStyle='#0e0f12';ctx.fillRect(0,0,W,H);
+  const bore=s*2.6,stroke=s*2*0.95; // px
+  const crankY=cy+s*2.1;const r=stroke/2,l=r*3.4;const headY=crankY-(r+l)-s*.85;
+  const pinX=cx+st.pin[0]*r,pinY=crankY+st.pin[1]*r;
+  const pistonY=crankY-st.y*r; // wrist pin
+  const pistonTop=pistonY-s*.75;
+  const chamberTop=headY;
+  // gas color
+  let gas;const f=deg%180/180;
+  if(st.stroke===0)gas=SCOL[0];
+  else if(st.stroke===1)gas=lerpCol('#4aa8ff','#ffd07a',Math.pow(f,3));
+  else if(st.stroke===2)gas=lerpCol('#fff1a8','#ff5a1f',Math.min(1,f*2.2));
+  else gas=lerpCol('#7a4a30','#6d7078',Math.min(1,f*1.5));
+  // crankcase
+  ctx.fillStyle='#1b1d22';ctx.beginPath();ctx.arc(cx,crankY,r+s*1.1,0,7);ctx.fill();
+  ctx.fillRect(cx-bore/2-s*.35,headY,bore+s*.7,crankY-headY);
+  // cylinder bore
+  ctx.fillStyle='#121317';ctx.fillRect(cx-bore/2,chamberTop,bore,crankY-chamberTop-r-s*.2);
+  // gas
+  ctx.globalAlpha=st.stroke===2?0.95:0.75;ctx.fillStyle=gas;ctx.fillRect(cx-bore/2,chamberTop,bore,pistonTop-chamberTop);ctx.globalAlpha=1;
+  if(st.stroke===2&&f<.25){const g=ctx.createRadialGradient(cx,chamberTop+s*.3,0,cx,chamberTop+s*.3,bore*.8);g.addColorStop(0,'rgba(255,255,220,.9)');g.addColorStop(1,'rgba(255,120,30,0)');ctx.fillStyle=g;ctx.fillRect(cx-bore/2,chamberTop,bore,pistonTop-chamberTop)}
+  // fuel spray: from 350° to 375°
+  if(deg>348&&deg<378){for(let i=0;i<6;i++)fuel.push({x:cx,y:chamberTop+s*.25,vx:(Math.random()-.5)*s*.12,vy:Math.random()*s*.08+s*.03,life:1})}
+  for(const p of fuel){p.x+=p.vx;p.y+=p.vy;p.life-=.06;ctx.fillStyle=`rgba(255,240,180,${Math.max(0,p.life)})`;ctx.fillRect(p.x,p.y,2.5,2.5)}
+  fuel=fuel.filter(p=>p.life>0);
+  // cylinder walls
+  ctx.fillStyle='#4b5160';ctx.fillRect(cx-bore/2-s*.35,chamberTop,s*.35,crankY-chamberTop-r-s*.2);ctx.fillRect(cx+bore/2,chamberTop,s*.35,crankY-chamberTop-r-s*.2);
+  // cooling fins hint
+  // head
+  ctx.fillStyle='#5a6172';ctx.fillRect(cx-bore/2-s*.9,headY-s*1.0,bore+s*1.8,s*1.0);
+  // valves: intake left, exhaust right
+  const iOpen=st.stroke===0?Math.sin(f*Math.PI):0,eOpen=st.stroke===3?Math.sin(f*Math.PI):0;
+  const vx1=cx-bore*.27,vx2=cx+bore*.27,vw=bore*.32,lift=s*.45;
+  // ports
+  ctx.fillStyle='#2a6fb8';ctx.beginPath();ctx.moveTo(vx1-vw/2,headY);ctx.lineTo(vx1+vw/2,headY);ctx.lineTo(cx-bore/2-s*.9,headY-s*.75);ctx.lineTo(cx-bore/2-s*.9,headY-s*.25);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#6b4a3a';ctx.beginPath();ctx.moveTo(vx2-vw/2,headY);ctx.lineTo(vx2+vw/2,headY);ctx.lineTo(cx+bore/2+s*.9,headY-s*.75);ctx.lineTo(cx+bore/2+s*.9,headY-s*.25);ctx.closePath();ctx.fill();
+  for(const[vx,o,col]of[[vx1,iOpen,'#9fd0ff'],[vx2,eOpen,'#d9b39a']]){const vy=headY+o*lift;ctx.strokeStyle=col;ctx.lineWidth=s*.12;ctx.beginPath();ctx.moveTo(vx,headY-s*1.6);ctx.lineTo(vx,vy);ctx.stroke();
+    ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(vx-vw/2,vy);ctx.lineTo(vx+vw/2,vy);ctx.lineTo(vx+vw*.2,vy-s*.18);ctx.lineTo(vx-vw*.2,vy-s*.18);ctx.closePath();ctx.fill()}
+  // injector
+  ctx.fillStyle=deg>348&&deg<378?'#ffe9a0':'#c9ccd4';ctx.fillRect(cx-s*.09,headY-s*1.7,s*.18,s*1.75);
+  // flow arrows
+  const flow=(x1,y1,x2,y2,col,on)=>{if(on<.15)return;ctx.globalAlpha=on;const ph=(t/300)%1;ctx.fillStyle=col;for(let k=0;k<3;k++){const u=(k/3+ph)%1;ctx.beginPath();ctx.arc(x1+(x2-x1)*u,y1+(y2-y1)*u,3,0,7);ctx.fill()}ctx.globalAlpha=1};
+  // turbo above head: compressor left, turbine right
+  const ty=headY-s*3.1,tcx=cx-s*2.1,ttx=cx+s*2.1,tr=s*.85;
+  const spin=t/1000*(8+12*(st.stroke===3?1:.6));
+  ctx.strokeStyle='#888d98';ctx.lineWidth=s*.16;ctx.beginPath();ctx.moveTo(tcx,ty);ctx.lineTo(ttx,ty);ctx.stroke();
+  for(const[x,col,lab]of[[tcx,'#4aa8ff','Compressor'],[ttx,'#ff8a3d','Turbine']]){ctx.fillStyle='#22252c';ctx.beginPath();ctx.arc(x,ty,tr+s*.25,0,7);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2.5;
+    for(let k=0;k<8;k++){const a=spin*(x===tcx?1:1)+k*Math.PI/4;ctx.beginPath();ctx.moveTo(x,ty);ctx.quadraticCurveTo(x+Math.cos(a+.5)*tr*.6,ty+Math.sin(a+.5)*tr*.6,x+Math.cos(a)*tr,ty+Math.sin(a)*tr);ctx.stroke()}
+    ctx.fillStyle='#cfd3da';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText(lab,x,ty-tr-s*.4)}
+  ctx.fillStyle='#9aa1ad';ctx.font='600 13px system-ui';ctx.textAlign='center';ctx.fillText('Turbocharger',cx,ty-tr-s*.9);
+  // pipes: compressor -> intake port, exhaust port -> turbine
+  ctx.strokeStyle='#2a6fb8';ctx.lineWidth=s*.35;ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(tcx,ty+tr+s*.2);ctx.lineTo(tcx,headY-s*.5);ctx.lineTo(cx-bore/2-s*.9,headY-s*.5);ctx.stroke();
+  ctx.strokeStyle='#6b4a3a';ctx.beginPath();ctx.moveTo(cx+bore/2+s*.9,headY-s*.5);ctx.lineTo(ttx,headY-s*.5);ctx.lineTo(ttx,ty+tr+s*.2);ctx.stroke();
+  // fresh air in, exhaust out
+  ctx.strokeStyle='#2a6fb8';ctx.beginPath();ctx.moveTo(tcx-tr-s*.25,ty);ctx.lineTo(tcx-s*2.2,ty);ctx.stroke();
+  ctx.strokeStyle='#6b4a3a';ctx.beginPath();ctx.moveTo(ttx+tr+s*.25,ty);ctx.lineTo(ttx+s*2.2,ty);ctx.stroke();
+  ctx.fillStyle='#9fd0ff';ctx.font='12px system-ui';ctx.textAlign='left';ctx.fillText('Fresh air in',tcx-s*2.2,ty+s*.55);
+  ctx.fillStyle='#d9b39a';ctx.textAlign='right';ctx.fillText('Exhaust out',ttx+s*2.2,ty+s*.55);
+  flow(tcx-s*2.2,ty,tcx-tr,ty,'#cfe8ff',1);
+  flow(ttx+tr,ty,ttx+s*2.2,ty,'#e8cdbb',1);
+  flow(tcx,ty+tr+s*.2,tcx,headY-s*.5,'#cfe8ff',iOpen+.3);
+  flow(ttx,headY-s*.5,ttx,ty+tr+s*.2,'#e8cdbb',eOpen+.3);
+  // piston
+  ctx.fillStyle='#b9bec8';ctx.fillRect(cx-bore/2+1,pistonTop,bore-2,s*1.25);
+  ctx.fillStyle='#8a909c';for(let k=0;k<3;k++)ctx.fillRect(cx-bore/2+1,pistonTop+s*(.15+k*.17),bore-2,s*.06);
+  // connecting rod
+  ctx.strokeStyle='#9aa1ad';ctx.lineWidth=s*.38;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx,pistonY);ctx.lineTo(pinX,pinY);ctx.stroke();
+  // crank
+  ctx.fillStyle='#6d7380';ctx.beginPath();ctx.arc(cx,crankY,r+s*.45,0,7);ctx.fill();
+  // counterweight
+  ctx.fillStyle='#565b66';ctx.beginPath();ctx.arc(cx,crankY,r+s*.35,st.th+Math.PI/2-1.2+Math.PI,st.th+Math.PI/2+1.2+Math.PI);ctx.lineTo(cx,crankY);ctx.fill();
+  ctx.fillStyle='#2c2f36';ctx.beginPath();ctx.arc(cx,crankY,s*.3,0,7);ctx.fill();
+  ctx.fillStyle='#d6dae1';ctx.beginPath();ctx.arc(pinX,pinY,s*.25,0,7);ctx.fill();ctx.beginPath();ctx.arc(cx,pistonY,s*.18,0,7);ctx.fill();
+  // labels
+  ctx.font='12px system-ui';ctx.fillStyle='#9aa1ad';ctx.textAlign='right';
+  const lab=(txt,x,y,tx,ty2,al='right')=>{ctx.strokeStyle='rgba(154,161,173,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(tx,ty2);ctx.stroke();ctx.textAlign=al;ctx.fillStyle='#b4bac5';ctx.fillText(txt,tx+(al==='right'?-4:4),ty2+4)};
+  lab('Intake valve',vx1-vw/2,headY+s*.1,cx-bore/2-s*1.8,headY+s*.7);
+  lab('Exhaust valve',vx2+vw/2,headY+s*.1,cx+bore/2+s*1.8,headY+s*.7,'left');
+  lab('Fuel injector',cx+s*.1,headY-s*1.4,cx+bore/2+s*1.8,headY-s*1.5,'left');
+  lab('Piston',cx-bore/2,pistonTop+s*.6,cx-bore/2-s*1.8,pistonTop+s*.6);
+  lab('Connecting rod',(cx+pinX)/2-s*.2,(pistonY+pinY)/2,cx-bore/2-s*1.8,crankY-r*1.2);
+  lab('Crankshaft',cx+r+s*.45,crankY+s*.3,cx+bore/2+s*1.8,crankY+s*.8,'left');
+  // stroke strip
+  const sy=crankY+r+s*1.9,sw=s*1.75,sx0=cx-sw*2-s*.15;const card=CARDS[idx]||{};
+  for(let i=0;i<4;i++){const x=sx0+i*(sw+s*.1);const on=i===st.stroke;const hl=card.stroke===i;
+    ctx.fillStyle=on?SCOL[i]:'#23262d';ctx.beginPath();ctx.roundRect(x,sy,sw,s*.7,6);ctx.fill();
+    if(hl){ctx.strokeStyle='#ffb020';ctx.lineWidth=2.5;ctx.stroke()}
+    ctx.fillStyle=on?'#0e0f12':'#9aa1ad';ctx.font=(on?'700 ':'')+Math.max(11,s*.24)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((i+1)+'. '+STROKES[i],x+sw/2,sy+s*.35)}
+  ctx.textBaseline='alphabetic';
+  // gauges
+  const gx=cx-bore/2-s*7.4,gy=headY+s*1.2;
+  ctx.textAlign='left';ctx.fillStyle='#9aa1ad';ctx.font='11px system-ui';
+  const row=(lbl,val,y,col='#eceef2')=>{ctx.fillStyle='#9aa1ad';ctx.font='11px system-ui';ctx.fillText(lbl.toUpperCase(),gx,y);ctx.fillStyle=col;ctx.font='600 '+Math.max(15,s*.36)+'px system-ui';ctx.fillText(val,gx,y+s*.45)};
+  row('Crank angle',Math.round(deg)+'°',gy);
+  row('Gas temperature',(st.T<100?'about ':'about ')+Math.round(st.T/10)*10+' °C',gy+s*1.05,st.T>400?'#ffb020':'#9fd0ff');
+  row('Cylinder pressure',Math.round(st.P/10)*10+' psi',gy+s*2.1);
+  ctx.fillStyle='#6f7684';ctx.font='11px system-ui';ctx.fillText('Values are approximate',gx,gy+s*3.05);
+}
+function next(){const card=document.getElementById('card');card.classList.add('hide');idx=(idx+1)%CARDS.length;start=performance.now();
+  setTimeout(()=>{const c=CARDS[idx];card.innerHTML=`<div class="kind">${c.k}</div><h2>${c.h}</h2>${c.b}`;card.classList.remove('hide')},500)}
+function frame(t){const dt=Math.min(50,t-last);last=t;draw(dt,t);if(idx>=0&&performance.now()-start>HOLD)next();requestAnimationFrame(frame)}
+next();requestAnimationFrame(frame);
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();next()}if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}});
+addEventListener('click',next);
+let idleT;addEventListener('mousemove',()=>{document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),3000)});
+</script>
+</body>
+</html>

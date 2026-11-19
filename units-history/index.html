@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Where Our Units Came From</title>
+<style>
+:root{--bg:#10100e;--panel:rgba(30,29,25,.94);--text:#f1eee6;--muted:#aaa395;--accent:#e9b949;--line:rgba(255,255,255,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+body.idle{cursor:none}
+#bg{position:fixed;inset:0;width:100%;height:100%}
+#title{position:fixed;left:4vw;top:3vh;max-width:52vw}
+#title h1{font-size:clamp(20px,2.4vw,38px);font-weight:600}
+#title p{color:var(--muted);font-size:clamp(12px,1vw,16px);margin-top:.35em;line-height:1.45}
+#main{position:fixed;left:4vw;top:22vh;width:54vw;transition:opacity .7s}
+#main.hide,#card.hide{opacity:0}
+.cat{display:inline-block;padding:3px 12px;border-radius:999px;font-size:clamp(11px,.9vw,14px);font-weight:700;color:#14130f;text-transform:uppercase;letter-spacing:.08em}
+.uname{font-size:clamp(48px,7vw,120px);font-weight:800;line-height:1;margin:.15em 0 .1em;letter-spacing:-.01em}
+.uname small{font-size:.32em;color:var(--muted);font-weight:500;margin-left:.35em;letter-spacing:0}
+.eq{font-size:clamp(20px,2.3vw,38px);font-weight:600;color:var(--accent)}
+.eq em{font-style:normal;color:var(--muted);font-size:.55em;font-weight:500;margin-left:.4em}
+.bars{margin-top:5vh}
+.bar{margin-bottom:1.5em}
+.bar .lbl{font-size:clamp(12px,1vw,16px);color:var(--muted);margin-bottom:.4em}
+.bar .lbl b{color:var(--text)}
+.bar .track{height:clamp(16px,2vh,26px);border-radius:6px;background:rgba(255,255,255,.05);overflow:hidden}
+.bar .fill{height:100%;border-radius:6px;width:0;transition:width 2.2s cubic-bezier(.2,.8,.2,1)}
+.note{color:var(--muted);font-size:clamp(12px,.95vw,15px);margin-top:.4em}
+#card{position:fixed;right:3vw;top:50%;transform:translateY(-50%);width:min(34vw,480px);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,2vw,30px);transition:opacity .7s}
+#card h3{color:var(--accent);font-size:clamp(11px,.85vw,13px);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4em}
+#card p{font-size:clamp(14px,1.1vw,18px);line-height:1.55;margin-bottom:1.1em}
+#card p:last-child{margin-bottom:0}
+#card .sec{border-top:1px solid var(--line);padding-top:1em;margin-top:.2em}
+#help{position:fixed;right:3vw;bottom:2vh;color:var(--muted);font-size:12px;opacity:.6}
+#count{position:fixed;left:4vw;bottom:3vh;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="title"><h1>Where Our Units Came From</h1><p>Feet, acres, horsepower and the 42-gallon barrel all started as something real: a body part, a day of plowing, a horse at work. Here is where they came from and what they mean today.</p></div>
+<div id="main" class="hide"></div>
+<div id="card" class="hide"></div>
+<div id="count"></div>
+<div id="help">Click or Space: next unit &nbsp; F: full screen</div>
+<script>
+const CAT={Length:'#e9b949',Area:'#9bd17b',Volume:'#6ec3e8',Mass:'#f08a5d',Power:'#ff6b6b',Pressure:'#c792ea',Energy:'#ffd166',Speed:'#5ad1b5',Temperature:'#ff9f68',Sound:'#a0b4ff'};
+// bars: [label, value] in the same units; the longest fills the track
+const U=[
+{n:'Inch',sym:'in',cat:'Length',eq:'1 inch = 2.54 cm',ex:'exactly',bars:[['1 inch',2.54],['1 centimeter',1]],
+ o:'The word comes from the Latin <i>uncia</i>, meaning one twelfth. An English law from the 1300s defined the inch as three barleycorns laid end to end.',
+ d:'Since 1959, the United States and other English-speaking countries have agreed that an inch is exactly 2.54 centimeters.',
+ w:'Tire sizes, screen sizes, wrench sizes, rainfall, and the tread depth you check on a pre-trip inspection.'},
+{n:'Foot',sym:'ft',cat:'Length',eq:'1 foot = 0.3048 m',ex:'exactly',bars:[['1 meter',1],['1 foot',0.3048]],
+ o:'Many ancient peoples measured with their feet. The Roman foot was about 29.6 cm. Feet varied from town to town until governments set official standards.',
+ d:'Exactly 0.3048 meters since 1959. American land surveyors used a slightly different "survey foot" until it was retired at the end of 2022.',
+ w:'Building and carpentry, bridge clearance signs, altitude in aviation, and the 13 ft 6 in height limit for trucks in Pennsylvania and much of the East.'},
+{n:'Yard',sym:'yd',cat:'Length',eq:'1 yard = 0.9144 m',ex:'exactly',bars:[['1 meter',1],['1 yard',0.9144]],
+ o:'A popular legend says King Henry I of England set the yard as the distance from his nose to the thumb of his outstretched arm. Cloth sellers really did measure that way.',
+ d:'Exactly 3 feet, or 0.9144 meters.',
+ w:'Football fields (100 yards between goal lines), fabric, and loads of gravel, mulch or concrete (sold by the cubic yard).'},
+{n:'Mile',sym:'mi',cat:'Length',eq:'1 mile = 1.609 km',ex:'5,280 feet',bars:[['1 mile',1.609344],['1 kilometer',1]],
+ o:'From the Roman <i>mille passuum</i>, "a thousand paces." A Roman pace was two steps, so their mile was about 1,480 meters.',
+ d:'In 1593 the English Parliament fixed the mile at 8 furlongs, which made it 5,280 feet. Today it is exactly 1,609.344 meters.',
+ w:'Road signs, speed limits, odometers, and the hours-of-service log every truck driver keeps.'},
+{n:'Furlong',sym:'fur',cat:'Length',eq:'1 furlong = 201 m',ex:'660 feet',bars:[['1 furlong',201.168],['100 meters',100]],
+ o:'Short for "furrow long," the length of one furrow a team of oxen could plow before resting and turning around.',
+ d:'One eighth of a mile, or 660 feet.',
+ w:'Horse racing. The Kentucky Derby is 10 furlongs, a mile and a quarter. Old farm and town maps also used furlongs.'},
+{n:'Chain',sym:'ch',cat:'Length',eq:'1 chain = 66 feet',ex:'20.1 m',bars:[['1 chain',20.1168],['10 meters',10]],
+ o:'English mathematician Edmund Gunter invented a 66-foot surveyor\'s chain of 100 iron links around 1620. It made land math easy: 10 square chains make an acre.',
+ d:'Exactly 66 feet. 80 chains make a mile. A rod (also called a perch) is a quarter chain, 16.5 feet.',
+ w:'Old property deeds, including many in Pennsylvania that measure boundaries in perches. A cricket pitch is exactly one chain long.'},
+{n:'Fathom',sym:'ftm',cat:'Length',eq:'1 fathom = 6 feet',ex:'1.83 m',bars:[['1 fathom',1.8288],['1 meter',1]],
+ o:'From an Old English word for outstretched arms. Sailors measured rope by stretching it between their hands, about 6 feet each time.',
+ d:'Exactly 6 feet.',
+ w:'Water depth on nautical charts. River pilots called out "mark twain" for two fathoms (12 feet) of water, and Samuel Clemens took that as his pen name.'},
+{n:'Hand',sym:'h',cat:'Length',eq:'1 hand = 4 inches',ex:'10.16 cm',bars:[['1 hand',10.16],['10 centimeters',10]],
+ o:'Based on the width of a man\'s hand across the palm and thumb. An English law in 1540 set it at 4 inches.',
+ d:'Exactly 4 inches.',
+ w:'Horse height, measured at the shoulder. A horse listed as "15.2 hands" is 15 hands and 2 inches, or 62 inches tall.'},
+{n:'Cubit',sym:'',cat:'Length',eq:'1 cubit ≈ 18 inches',ex:'about 45 cm',bars:[['1 cubit',45.7],['30 centimeters (a ruler)',30.48]],
+ o:'The length from the elbow to the tip of the middle finger. It is one of the oldest recorded units. Ancient Egypt kept a longer "royal cubit" of about 52 cm on official measuring rods.',
+ d:'No official modern value. The common cubit is usually taken as about 18 inches.',
+ w:'Ancient history and the Bible. Noah\'s ark is described as 300 cubits long, roughly 450 feet.'},
+{n:'Knot',sym:'kn',cat:'Speed',eq:'1 knot = 1.151 mph',ex:'1.852 km/h',bars:[['1 knot',1.852],['1 mph',1.609344]],
+ o:'Sailors measured speed with a "chip log," a board tied to a rope with knots every few yards. They tossed it overboard and counted how many knots slipped through their hands while a small sand glass ran out.',
+ d:'One nautical mile per hour. A nautical mile is exactly 1,852 meters, based on one minute of latitude, which makes navigating with charts easier.',
+ w:'Ships, airplanes and wind speeds in marine weather reports.'},
+{n:'Acre',sym:'ac',cat:'Area',eq:'1 acre = 43,560 ft²',ex:'about 4,047 m²',bars:[['1 hectare',10000],['1 acre',4046.86]],
+ o:'Roughly the land a farmer with a team of oxen could plow in one day. It was set as one furlong long by one chain wide.',
+ d:'Exactly 43,560 square feet. 640 acres make a square mile.',
+ w:'Farms, house lots and parks. An American football field with its end zones is about 1.3 acres.'},
+{n:'Pound',sym:'lb',cat:'Mass',eq:'1 pound = 0.4536 kg',ex:'exactly 0.45359237 kg',bars:[['1 kilogram',1],['1 pound',0.45359237]],
+ o:'From the Roman <i>libra pondo</i>, "a pound by weight." That is why the abbreviation is lb. Many different pounds were used across Europe for different goods.',
+ d:'The avoirdupois pound of 16 ounces has been exactly 0.45359237 kilograms since 1959.',
+ w:'Body weight, groceries, and trucking: 80,000 pounds is the federal gross weight limit on interstates, with 34,000 pounds on a tandem axle.'},
+{n:'Stone',sym:'st',cat:'Mass',eq:'1 stone = 14 pounds',ex:'6.35 kg',bars:[['1 stone',6.35],['1 kilogram',1]],
+ o:'Merchants once used actual stones as standard weights on their scales. The size of a "stone" changed with the goods being weighed until England settled on 14 pounds.',
+ d:'Exactly 14 pounds.',
+ w:'Body weight in the United Kingdom and Ireland. Someone there might say they weigh "11 stone 4," which is 158 pounds.'},
+{n:'Ton',sym:'',cat:'Mass',eq:'1 short ton = 2,000 lb',ex:'907 kg',bars:[['1 metric tonne',1000],['1 short ton (US)',907.18]],
+ o:'From the "tun," a huge cask for wine. A ship\'s size was once measured by how many tuns it could carry.',
+ d:'The US short ton is 2,000 pounds. The British long ton is 2,240 pounds. The metric tonne is 1,000 kg.',
+ w:'Truck and bridge weight limits, coal and steel production, and the capacity of a pickup ("half-ton," "three-quarter-ton").'},
+{n:'Carat',sym:'ct',cat:'Mass',eq:'1 carat = 200 milligrams',ex:'exactly',bars:[['1 gram',1],['1 carat',0.2]],
+ o:'Traders used carob seeds as tiny counterweights for gems. The Greek word for the carob seed, <i>keration</i>, became "carat."',
+ d:'The metric carat was set at exactly 0.2 grams in 1907. Do not mix it up with the gold "karat," which measures purity out of 24 parts.',
+ w:'Diamonds and other gemstones.'},
+{n:'Gallon',sym:'gal',cat:'Volume',eq:'1 US gallon = 3.785 L',ex:'231 cubic inches',bars:[['1 US gallon',3.785],['1 liter',1]],
+ o:'The US gallon comes from the English wine gallon of 1707, set at 231 cubic inches. Britain later switched to a larger "imperial" gallon, the volume of 10 pounds of water.',
+ d:'Exactly 231 cubic inches, about 3.785 liters. An imperial gallon is about 4.546 liters.',
+ w:'Gas and diesel pumps, milk jugs, paint. A big rig\'s fuel tanks often hold 200 to 300 gallons.'},
+{n:'Oil Barrel',sym:'bbl',cat:'Volume',eq:'1 barrel = 42 US gallons',ex:'about 159 L',bars:[['1 barrel',158.987],['100 liters',100]],
+ o:'The first commercial oil well was drilled near Titusville, Pennsylvania, in 1859. In 1866 Pennsylvania oil producers agreed on a 42-gallon barrel, and the rest of the world followed.',
+ d:'Exactly 42 US gallons. Oil is no longer shipped in barrels, but it is still priced by the barrel.',
+ w:'World oil prices on the news. One barrel of crude oil becomes about 19 to 20 gallons of gasoline plus diesel, jet fuel and other products.'},
+{n:'Board Foot',sym:'BF',cat:'Volume',eq:'1 board foot = 144 in³',ex:'about 2.36 L',bars:[['1 board foot',2.36],['1 liter',1]],
+ o:'Lumber yards needed a way to price boards of any shape. A board foot is a piece 1 foot long, 1 foot wide and 1 inch thick.',
+ d:'Exactly 144 cubic inches. Note that a "2 by 4" is really only 1½ by 3½ inches. It is named for its size when first sawn, before drying and planing.',
+ w:'Hardwood lumber sales, sawmills and timber sales.'},
+{n:'Horsepower',sym:'hp',cat:'Power',eq:'1 horsepower = 745.7 W',ex:'about ¾ kW',bars:[['1 kilowatt',1000],['1 horsepower',745.7]],
+ o:'James Watt needed to sell steam engines to mine owners who used horses. In the 1780s he measured how fast horses could turn a mill wheel and defined 1 horsepower as 33,000 foot-pounds per minute.',
+ d:'Mechanical horsepower is about 745.7 watts. A real horse can produce 1 horsepower all day, and over 10 horsepower in a short burst.',
+ w:'Car and truck engines. A big rig makes about 400 to 600 horsepower.'},
+{n:'PSI',sym:'lbf/in²',cat:'Pressure',eq:'1 psi = 6.895 kPa',ex:'pounds per square inch',bars:[['10 kilopascals',10],['1 psi',6.895]],
+ o:'Pounds of force pushing on each square inch. It grew out of the steam age, when engineers needed to know how hard steam pushed on boiler walls.',
+ d:'One pound-force spread over one square inch, about 6,895 pascals. The air around you presses at about 14.7 psi at sea level.',
+ w:'Car tires (about 32 to 35 psi), truck tires (about 100 to 110 psi), and air brakes, which run between about 100 and 125 psi.'},
+{n:'BTU',sym:'',cat:'Energy',eq:'1 BTU = 1,055 joules',ex:'about 1 kJ',bars:[['1 BTU',1055.06],['1 kilojoule',1000]],
+ o:'The British Thermal Unit is the heat needed to warm one pound of water by one degree Fahrenheit.',
+ d:'About 1,055 joules, close to the energy of a burning kitchen match.',
+ w:'Furnaces, air conditioners and grills, rated in BTU per hour. A gallon of diesel holds about 137,000 BTU.'},
+{n:'Calorie',sym:'Cal',cat:'Energy',eq:'1 food Calorie = 4,184 J',ex:'1 kilocalorie',bars:[['1 food Calorie',4184],['1 kilojoule',1000]],
+ o:'Scientists defined the small calorie as the heat needed to warm 1 gram of water by 1 °C. The Calorie on food labels is 1,000 of those.',
+ d:'One food Calorie (capital C) is one kilocalorie, about 4,184 joules.',
+ w:'Nutrition labels. Many other countries list food energy in kilojoules instead.'},
+{n:'Degree Fahrenheit',sym:'°F',cat:'Temperature',eq:'1 °F step = 5⁄9 °C step',ex:'freezing 32 °F, boiling 212 °F',bars:[['1 °C step',1],['1 °F step',0.5556]],
+ o:'Daniel Gabriel Fahrenheit created his scale in 1724. He set 0 °F at a freezing mix of ice, water and salt, 32 °F at plain water freezing, and about 96 °F at body temperature. Later scientists adjusted the scale so water boils at 212 °F.',
+ d:'Water freezes at 32 °F and boils at 212 °F at sea level, 180 degrees apart. Celsius puts those 100 degrees apart, so each Fahrenheit degree is smaller.',
+ w:'Everyday weather and cooking in the United States, and engine coolant and oil temperature gauges.'},
+{n:'Decibel',sym:'dB',cat:'Sound',eq:'+10 dB = 10 × the intensity',ex:'a logarithmic scale',bars:[['Jet engine at 30 m: 140 dB',140],['Chainsaw: 110 dB',110],['Busy highway: 85 dB',85],['Conversation: 60 dB',60],['Whisper: 30 dB',30]],
+ o:'Named for Alexander Graham Bell. A "bel" was too large to be handy, so engineers used tenths of a bel: the decibel.',
+ d:'Each 10 dB step means 10 times as much sound energy. A 90 dB sound carries 1,000 times the energy of a 60 dB one.',
+ w:'Hearing safety. Long exposure to sound over about 85 dB, like a diesel engine room or heavy traffic, can damage hearing for good.'}
+];
+// shuffle-free fixed order mixes categories reasonably; start at a random spot
+let idx=Math.floor(Math.random()*U.length)-1,start=0;const HOLD=18000;
+function show(){
+  const u=U[idx],col=CAT[u.cat],main=document.getElementById('main'),card=document.getElementById('card');
+  const max=Math.max(...u.bars.map(b=>b[1]));
+  main.innerHTML=`<span class="cat" style="background:${col}">${u.cat}</span><div class="uname">${u.n}${u.sym?`<small>${u.sym}</small>`:''}</div><div class="eq">${u.eq}<em>${u.ex}</em></div>
+  <div class="bars">${u.bars.map((b,i)=>`<div class="bar"><div class="lbl"><b>${b[0]}</b></div><div class="track"><div class="fill" data-w="${(b[1]/max*100).toFixed(1)}" style="background:${i===0?col:'rgba(255,255,255,.35)'}"></div></div></div>`).join('')}</div>`;
+  card.innerHTML=`<h3>Where it came from</h3><p>${u.o}</p><div class="sec"><h3>What it means today</h3><p>${u.d}</p></div><div class="sec"><h3>Where you will see it</h3><p>${u.w}</p></div>`;
+  document.getElementById('count').textContent=(idx+1)+' of '+U.length;
+  main.classList.remove('hide');card.classList.remove('hide');
+  setTimeout(()=>main.querySelectorAll('.fill').forEach(f=>f.style.width=f.dataset.w+'%'),80);
+}
+function next(){document.getElementById('main').classList.add('hide');document.getElementById('card').classList.add('hide');
+  idx=(idx+1)%U.length;start=performance.now();setTimeout(show,700)}
+// faint ruler background
+const cv=document.getElementById('bg'),ctx=cv.getContext('2d');
+function drawBg(){const d=devicePixelRatio||1;cv.width=innerWidth*d;cv.height=innerHeight*d;ctx.setTransform(d,0,0,d,0,0);
+  const W=innerWidth,H=innerHeight;ctx.strokeStyle='rgba(233,185,73,.10)';ctx.fillStyle='rgba(233,185,73,.16)';ctx.font='10px system-ui';
+  const y=H-1,step=W/48;for(let i=0;i<=48*8;i++){const x=i*step/8;const h=i%8===0?28:i%4===0?16:i%2===0?10:6;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-h);ctx.stroke();if(i%8===0&&i>0)ctx.fillText(i/8,x+2,y-20)}}
+addEventListener('resize',drawBg);drawBg();
+next();
+setInterval(()=>{if(performance.now()-start>HOLD)next()},500);
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();next()}if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}});
+addEventListener('click',next);
+let idleT;addEventListener('mousemove',()=>{document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),3000)});
+</script>
+</body>
+</html>

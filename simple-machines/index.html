@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple Machines</title>
+<style>
+:root{--bg:#0c1117;--panel:rgba(20,28,38,.93);--text:#e9eef4;--muted:#94a3b5;--accent:#4fd1c5;--effort:#ff9f43;--load:#7aa8ff;--line:rgba(255,255,255,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+body.idle{cursor:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#title{position:fixed;left:3vw;top:3vh;max-width:56vw}
+#title h1{font-size:clamp(20px,2.4vw,38px);font-weight:600}
+#title p{color:var(--muted);font-size:clamp(12px,1vw,16px);margin-top:.35em;line-height:1.45}
+#card{position:fixed;right:3vw;top:50%;transform:translateY(-50%);width:min(33vw,470px);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,2vw,30px);transition:opacity .7s}
+#card.hide{opacity:0}
+#card .kind{color:var(--accent);font-size:clamp(11px,.85vw,13px);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+#card h2{font-size:clamp(26px,2.8vw,46px);line-height:1.1;margin:.15em 0 .5em}
+.formula{background:rgba(79,209,197,.1);border:1px solid rgba(79,209,197,.35);border-radius:12px;padding:.7em 1em;font-size:clamp(15px,1.3vw,21px)}
+.formula small{display:block;color:var(--muted);font-size:.65em;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2em}
+.ex{margin-top:1em;font-size:clamp(13px,1.05vw,17px);line-height:1.55}
+.ex b{color:var(--effort)}
+.where{margin-top:1em;padding-top:.9em;border-top:1px solid var(--line);font-size:clamp(12px,.95vw,15px);color:var(--muted);line-height:1.5}
+.where strong{color:var(--text);font-weight:600}
+#rule{position:fixed;left:3vw;bottom:4.5vh;max-width:56vw;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:clamp(12px,1vw,15px);color:var(--muted);line-height:1.5}
+#rule b{color:var(--text)}
+.key{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+#help{position:fixed;right:3vw;bottom:2vh;color:var(--muted);font-size:12px;opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title"><h1>Simple Machines</h1><p>A simple machine lets a small force move a big load. The catch: you have to push through a longer distance.</p></div>
+<div id="rule"><b>The rule every machine follows:</b> work in = work out (minus friction). Force × distance stays the same, so trading less force means more distance.
+<span class="key" style="background:var(--effort)"></span>Effort <span class="key" style="background:var(--load)"></span>Load</div>
+<div id="card" class="hide"></div>
+<div id="help">Click or Space: next machine &nbsp; F: full screen</div>
+<script>
+const EFF='#ff9f43',LOAD='#7aa8ff',MET='#c9d3de',WOOD='#b88a5a',ACC='#4fd1c5',MUT='#94a3b5';
+const M=[
+{id:'lever1',kind:'Lever · first class',name:'Seesaw Lever',formula:'MA = effort arm ÷ load arm',
+ ex:'With the fulcrum 0.8 m from the load and 2.4 m from you, MA = 2.4 ÷ 0.8 = <b>3</b>. You lift a 600 N load with only 200 N of push, but your end moves 3 times as far as the load.',
+ where:'<strong>You see it in:</strong> seesaws, crowbars, pry bars, claw hammers pulling nails, scissors and pliers (two levers sharing one fulcrum).'},
+{id:'lever2',kind:'Lever · second class',name:'Wheelbarrow Lever',formula:'MA = effort arm ÷ load arm',
+ ex:'The load sits between the fulcrum and you. With the load 0.5 m from the wheel and the handles 1.5 m away, MA = 1.5 ÷ 0.5 = <b>3</b>. A 900 N load of dirt feels like 300 N.',
+ where:'<strong>You see it in:</strong> wheelbarrows, nutcrackers, bottle openers, a door (the hinges are the fulcrum), standing on your tiptoes.'},
+{id:'lever3',kind:'Lever · third class',name:'Forearm Lever',formula:'MA = effort arm ÷ load arm (less than 1)',
+ ex:'Your biceps attaches about 0.05 m from the elbow, and your hand is about 0.35 m away. MA = 0.05 ÷ 0.35 ≈ <b>0.14</b>. Holding a 50 N weight takes about 350 N of muscle force. The payoff is speed: your hand moves 7 times faster than the muscle.',
+ where:'<strong>You see it in:</strong> your arm, brooms, shovels, fishing rods, tweezers, baseball bats and hockey sticks.'},
+{id:'wheel',kind:'Wheel and axle',name:'Wheel and Axle',formula:'MA = wheel radius ÷ axle radius',
+ ex:'A wheel with a 25 cm radius on a 5 cm axle gives MA = 25 ÷ 5 = <b>5</b>. Turn the rim with 40 N and the rope on the axle pulls with 200 N, but the rim travels 5 times farther.',
+ where:'<strong>You see it in:</strong> steering wheels, doorknobs, screwdrivers, faucet handles, the crank on a trailer\'s landing gear, a winch.'},
+{id:'pulley',kind:'Pulley',name:'Block and Tackle',formula:'MA = number of rope strands holding the load',
+ ex:'Four strands hold this load up, so MA = <b>4</b>. To lift 800 N you pull with 200 N. To raise the load 1 meter, you pull 4 meters of rope.',
+ where:'<strong>You see it in:</strong> cranes, sailboat rigging, engine hoists, flagpoles (one fixed pulley only changes direction, MA = 1), elevators.'},
+{id:'ramp',kind:'Inclined plane',name:'Ramp',formula:'MA = ramp length ÷ ramp height',
+ ex:'A ramp 6 m long that rises 1 m gives MA = 6 ÷ 1 = <b>6</b>. Pushing a 1,200 N cart up it takes about 200 N, if friction is small.',
+ where:'<strong>You see it in:</strong> loading ramps, wheelchair ramps (the ADA allows 1 inch of rise per 12 inches), roads. A 6% grade sign means the road rises 6 feet for every 100 feet.'},
+{id:'wedge',kind:'Wedge',name:'Wedge',formula:'MA = wedge length ÷ wedge thickness',
+ ex:'A splitting wedge 20 cm long and 5 cm thick at the back has MA = 20 ÷ 5 = <b>4</b>. Each blow of the maul is multiplied about 4 times as it pushes the wood apart. Long, thin wedges have higher MA.',
+ where:'<strong>You see it in:</strong> axes, knives, chisels, nails, zippers, doorstops, the front of a plow, your front teeth.'},
+{id:'screw',kind:'Screw',name:'Screw Jack',formula:'MA = 2π × handle radius ÷ pitch',
+ ex:'A jack with a 15 cm handle and threads 2 mm apart has MA = 2π × 150 ÷ 2 ≈ <b>470</b>. Friction eats most of that, but it is also what keeps the jack from unwinding under the weight.',
+ where:'<strong>You see it in:</strong> car jacks, C-clamps, vises, jar lids, bolts and nuts, drill bits, the Archimedes screw for lifting water.'},
+{id:'gears',kind:'Gears (wheel and axle family)',name:'Gear Train',formula:'Gear ratio = driven teeth ÷ driver teeth',
+ ex:'A 12-tooth gear driving a 36-tooth gear gives a ratio of 36 ÷ 12 = <b>3 to 1</b>. The big gear turns one third as fast but with 3 times the turning force (torque).',
+ where:'<strong>You see it in:</strong> bicycles, clocks, mixers, and truck transmissions. The lowest gears in a big rig have ratios over 12 to 1 to get 80,000 pounds rolling.'}
+];
+
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');let W,H,DPR;
+function resize(){DPR=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+function stage(){const w=W*0.6,h=H*0.62;return{cx:W*0.32,cy:H*0.52,u:Math.min(w,h*1.4)/10}}
+
+function arrow(x1,y1,x2,y2,col,label,lw=4){
+  const a=Math.atan2(y2-y1,x2-x1),h=12+lw*2;
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=lw;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2-Math.cos(a)*h*.6,y2-Math.sin(a)*h*.6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-h*Math.cos(a-.4),y2-h*Math.sin(a-.4));ctx.lineTo(x2-h*Math.cos(a+.4),y2-h*Math.sin(a+.4));ctx.closePath();ctx.fill();
+  if(label){ctx.font='600 15px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';const lx=x1-Math.cos(a)*18,ly=y1-Math.sin(a)*18;ctx.fillText(label,lx,ly)}
+}
+function box(x,y,w,h,col,ang=0,label){ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.fillStyle=col;ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(-w/2,-h,w,h,4);ctx.fill();ctx.stroke();
+  if(label){ctx.fillStyle='#0c1117';ctx.font='700 14px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,0,-h/2)}ctx.restore()}
+function text(s,x,y,col=MUT,size=14,align='center',weight=''){ctx.fillStyle=col;ctx.font=weight+' '+size+'px system-ui';ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(s,x,y)}
+function ground(y,x0,x1){ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.08)';for(let x=x0;x<x1;x+=14){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-10,y+10);ctx.stroke()}}
+function dim(x1,y1,x2,y2,label,col=MUT){ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.setLineDash([]);
+  for(const[x,y]of[[x1,y1],[x2,y2]]){ctx.beginPath();ctx.arc(x,y,2.5,0,7);ctx.fillStyle=col;ctx.fill()}
+  text(label,(x1+x2)/2,(y1+y2)/2+14,col,13)}
+
+// s goes 0 -> 1 -> 0 smoothly over each period
+const wave=(t,P=5000)=>(1-Math.cos(2*Math.PI*t/P))/2;
+
+function drawLever(t,cls){
+  const{cx,cy,u}=stage();const L=8*u;const x0=cx-L/2;
+  // positions along beam (0..1): fulcrum, load, effort
+  const cfg={1:{f:.27,l:.04,e:.98},2:{f:.02,l:.33,e:.98},3:{f:.02,l:.97,e:.14}}[cls];
+  const s=wave(t);
+  const maxA=cls===1?.2:.17;
+  let ang= cls===1? maxA*(s*2-1)*-1 : -maxA*s; // radians; negative = load end up for class1 handled below
+  if(cls===1)ang=-maxA+2*maxA*(1-s); // effort end down when s=1
+  const py=cy+u*1.2,px=x0+cfg.f*L;
+  const P=f=>[px+(f-cfg.f)*L*Math.cos(ang),py+(f-cfg.f)*L*Math.sin(ang)];
+  ground(py+ (cls===1?u*0.9:u*0.55),x0-u*.5,x0+L+u*.5);
+  // fulcrum
+  if(cls===1){ctx.fillStyle=ACC;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px-u*.5,py+u*.9);ctx.lineTo(px+u*.5,py+u*.9);ctx.closePath();ctx.fill()}
+  else{ctx.fillStyle=ACC;ctx.beginPath();ctx.arc(px,py,u*.22,0,7);ctx.fill();ctx.fillStyle='#0c1117';ctx.beginPath();ctx.arc(px,py,u*.08,0,7);ctx.fill();
+    ctx.fillStyle='rgba(79,209,197,.5)';ctx.fillRect(px-u*.3,py+u*.22,u*.6,u*.33)}
+  // beam
+  const[a1,b1]=P(0),[a2,b2]=P(1);ctx.strokeStyle=cls===3?'#d9b38c':WOOD;ctx.lineWidth=u*.22;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a1,b1);ctx.lineTo(a2,b2);ctx.stroke();
+  // load
+  const[lx,ly]=P(cfg.l);
+  if(cls===3){ctx.fillStyle=LOAD;ctx.beginPath();ctx.arc(lx,ly-u*.45,u*.42,0,7);ctx.fill();text('Load',lx,ly-u*.45,'#0c1117',14,'center','700')}
+  else box(lx,ly-u*.1,u*1.1,u*.9,LOAD,ang,'Load');
+  // effort arrow
+  const[ex,ey]=P(cfg.e);
+  if(cls===1)arrow(ex,ey-u*1.6,ex,ey-u*.2,EFF,'Effort');
+  else arrow(ex,ey+(cls===2?-u*.2:u*1.5),ex,ey+(cls===2?-u*1.6:u*.25),EFF,'');
+  if(cls!==1)text('Effort',ex+u*.55,ey+(cls===2?-u*1:u*.9),EFF,15,'left','600');
+  text('Fulcrum',px,py+(cls===1?u*1.25:u*.95),ACC,14,'center','600');
+  // arm dimensions along a fixed baseline below
+  const by=py+(cls===1?u*1.75:u*1.45);
+  const fx=x0+cfg.f*L,lx0=x0+cfg.l*L,ex0=x0+cfg.e*L;
+  dim(fx,by,ex0,by+(cls===3?0:0),'effort arm',EFF);
+  dim(fx,by+u*.55,lx0,by+u*.55,'load arm',LOAD);
+}
+function drawWheel(t){
+  const{cx,cy,u}=stage();const R=u*2.4,r=u*.48;const x=cx-u*.6,y=cy-u*1.3;
+  const s=wave(t,6000);const rot=s*Math.PI*2*1.2;
+  // support
+  ctx.fillStyle='#3a4656';ctx.beginPath();ctx.moveTo(x-u*.3,y);ctx.lineTo(x-u*1.4,y+u*4.6);ctx.lineTo(x+u*1.4,y+u*4.6);ctx.lineTo(x+u*.3,y);ctx.closePath();ctx.fill();
+  ground(y+u*4.6,cx-u*4.5,cx+u*4.5);
+  // wheel
+  ctx.strokeStyle=MET;ctx.lineWidth=u*.18;ctx.beginPath();ctx.arc(x,y,R,0,7);ctx.stroke();
+  ctx.lineWidth=3;for(let k=0;k<6;k++){const a=-rot+k*Math.PI/3;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(a)*R,y+Math.sin(a)*R);ctx.stroke()}
+  ctx.fillStyle=ACC;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+  // rope from axle right side down to load
+  const ropeLen=u*3.2-s*r*Math.PI*2*1.2*0.55;
+  const lx=x+r,ly=y+ropeLen;
+  ctx.strokeStyle='#e6d3a3';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(lx,y);ctx.lineTo(lx,ly);ctx.stroke();
+  box(lx,ly+u*.9,u*1,u*.9,LOAD,0,'Load');
+  // effort at rim (left side) tangent downward
+  const ax=x-R,ay=y;arrow(ax-u*.1,ay-u*1.3,ax-u*.1,ay+u*.1,EFF,'Effort');
+  dim(x,y-R-u*.45,x-R,y-R-u*.45,'wheel radius',EFF);
+  text('axle radius',x+r+u*1.4,y-u*.15,LOAD,13,'left');ctx.strokeStyle=LOAD;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+r,y);ctx.stroke();
+}
+function drawPulley(t){
+  const{cx,cy,u}=stage();const top=cy-u*3.2,d=u*.7;const x0=cx-u*1.6;
+  const s=wave(t,7000);const lift=s*u*.6;
+  const lowY=cy+u*1.2-lift; // lower block center
+  const pr=d/2;
+  // ceiling
+  ctx.fillStyle='#3a4656';ctx.fillRect(cx-u*3,top-u*.5,u*6,u*.3);
+  // upper pulleys (centers between strands 2-3 and 4-5)
+  const upY=top+u*.5;
+  const xs=[x0,x0+d,x0+2*d,x0+3*d,x0+4*d];
+  ctx.strokeStyle='#e6d3a3';ctx.lineWidth=3;
+  // strand 1 anchored to ceiling
+  const seg=(x,y1,y2)=>{ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y2);ctx.stroke()};
+  seg(xs[0],top-u*.2,lowY);seg(xs[1],upY,lowY);seg(xs[2],upY,lowY);seg(xs[3],upY,lowY);
+  // effort strand comes down from the second upper pulley
+  const pullEnd=cy+u*.4+lift*4;
+  seg(xs[4],upY,pullEnd);
+  // rope arcs
+  const arcU=(xa)=>{ctx.beginPath();ctx.arc(xa+pr,upY,pr,Math.PI,0);ctx.stroke()};
+  const arcD=(xa)=>{ctx.beginPath();ctx.arc(xa+pr,lowY,pr,0,Math.PI);ctx.stroke()};
+  arcU(xs[1]);arcU(xs[3]);arcD(xs[0]);arcD(xs[2]);
+  // pulley wheels
+  for(const[xc,yc]of[[xs[1]+pr,upY],[xs[3]+pr,upY],[xs[0]+pr,lowY],[xs[2]+pr,lowY]]){ctx.strokeStyle=MET;ctx.lineWidth=2;ctx.beginPath();ctx.arc(xc,yc,pr-2,0,7);ctx.stroke();ctx.fillStyle=MET;ctx.beginPath();ctx.arc(xc,yc,3,0,7);ctx.fill()}
+  // pulley straps
+  ctx.strokeStyle=MET;ctx.lineWidth=3;
+  for(const xc of[xs[1]+pr,xs[3]+pr]){ctx.beginPath();ctx.moveTo(xc,top-u*.2);ctx.lineTo(xc,upY);ctx.stroke()}
+  // lower block bar and load
+  ctx.beginPath();ctx.moveTo(xs[0]+pr,lowY);ctx.lineTo(xs[0]+pr,lowY+u*.55);ctx.lineTo(xs[2]+pr,lowY+u*.55);ctx.lineTo(xs[2]+pr,lowY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(xs[1],lowY+u*.55);ctx.lineTo(xs[1],lowY+u*.85);ctx.stroke();
+  box(xs[1],lowY+u*1.85,u*1.4,u*1,LOAD,0,'Load');
+  // strand count labels
+  for(let i=0;i<4;i++)text(String(i+1),xs[i]-(i===0?10:0)+ (i?-0:0),(upY+lowY)/2,LOAD,14,'center','700');
+  text('4 strands hold the load',x0+1.5*d,lowY+u*2.25,LOAD,14,'center','600');
+  // effort arrow on pull end
+  arrow(xs[4],pullEnd-u*.2,xs[4],pullEnd+u*1,EFF,'');text('Effort',xs[4]+u*.3,pullEnd+u*.5,EFF,15,'left','600');
+  // distance readout
+  text('Load rises '+(s*.5).toFixed(2)+' m',cx+u*2.2,cy-u*1.2,LOAD,15,'left','600');
+  text('Rope pulled '+(s*2).toFixed(2)+' m',cx+u*2.2,cy-u*.7,EFF,15,'left','600');
+}
+function drawRamp(t){
+  const{cx,cy,u}=stage();const x0=cx-u*4,x1=cx+u*3.6,yb=cy+u*2,ht=u*1.9;
+  ground(yb,x0-u*.6,x1+u*.8);
+  ctx.fillStyle='#4a5a6c';ctx.beginPath();ctx.moveTo(x0,yb);ctx.lineTo(x1,yb);ctx.lineTo(x1,yb-ht);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#3a4656';ctx.fillRect(x1,yb-ht,u*.9,ht);
+  const ang=Math.atan2(-ht,x1-x0);const s=wave(t,7000);
+  const f=.1+.78*s;const bx=x0+(x1-x0)*f,by=yb-ht*f;
+  box(bx,by,u*.95,u*.8,LOAD,ang,'Load');
+  const c=Math.cos(ang),sn=Math.sin(ang);
+  arrow(bx-c*u*2+sn*u*.4,by-sn*u*2-c*u*.4,bx-c*u*.55+sn*u*.4,by-sn*u*.55-c*u*.4,EFF,'Effort');
+  dim(x1+u*1.2,yb,x1+u*1.2,yb-ht,'',LOAD);text('height',x1+u*1.45,yb-ht/2,LOAD,13,'left');
+  const ox=-Math.sin(ang)*u*.45,oy=Math.cos(ang)*u*.45;
+  ctx.strokeStyle=EFF;ctx.lineWidth=1.2;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x0+(x1-x0)*.12+ox,yb-ht*.12+oy);ctx.lineTo(x0+(x1-x0)*.97+ox,yb-ht*.97+oy);ctx.stroke();ctx.setLineDash([]);
+  text('ramp length',(x0+x1)/2+u*.6,yb-ht/2+u*.85,EFF,13);
+}
+function drawWedge(t){
+  const{cx,cy,u}=stage();const s=wave(t,5000);const depth=s;
+  const yb=cy+u*2.3;ground(yb,cx-u*4.5,cx+u*4.5);
+  const logW=u*3.2,logH=u*2.6;const gap=depth*u*.85;const wy=cy-u*2.1+depth*u*1.4;
+  // two log halves pushed apart
+  for(const side of[-1,1]){ctx.save();ctx.translate(cx+side*(gap/2),yb);ctx.rotate(side*depth*.05);
+    ctx.fillStyle='#8a6a48';ctx.beginPath();ctx.rect(side>0?0:-logW/2,-logH,logW/2,logH);ctx.fill();
+    ctx.strokeStyle='rgba(60,40,20,.6)';ctx.lineWidth=1.5;for(let k=1;k<5;k++){ctx.beginPath();const xx=(side>0?1:-1)*k*logW/10;ctx.moveTo(xx,-logH);ctx.lineTo(xx,0);ctx.stroke()}ctx.restore()}
+  // crack
+  ctx.strokeStyle='#2a1c10';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,yb-logH+depth*u*1.4+u*.8);ctx.lineTo(cx,yb-logH+depth*u*1.4+u*.8+depth*u*1.2);ctx.stroke();
+  // wedge (tip pointing down)
+  const wl=u*2.2,wt=u*.75;
+  ctx.fillStyle=MET;ctx.beginPath();ctx.moveTo(cx,wy+wl);ctx.lineTo(cx-wt/2,wy);ctx.lineTo(cx+wt/2,wy);ctx.closePath();ctx.fill();
+  arrow(cx,wy-u*1.3,cx,wy-u*.12,EFF,'Effort');
+  // spreading forces
+  arrow(cx-gap/2-u*.3,yb-logH*.55,cx-gap/2-u*1.6,yb-logH*.55,LOAD,'');arrow(cx+gap/2+u*.3,yb-logH*.55,cx+gap/2+u*1.6,yb-logH*.55,LOAD,'');
+  text('Wood pushed apart',cx,yb+u*.45,LOAD,14,'center','600');
+  dim(cx+wt/2+u*.35,wy,cx+wt/2+u*.35,wy+wl,'',EFF);text('length',cx+wt/2+u*.55,wy+wl/2,EFF,13,'left');
+  dim(cx-wt/2,wy-u*.3,cx+wt/2,wy-u*.3,'',LOAD);text('thickness',cx-wt/2-u*.15,wy-u*.3,LOAD,13,'right');
+}
+function drawScrew(t){
+  const{cx,cy,u}=stage();const s=wave(t,8000);const turns=s*4;const pitch=u*.32;
+  const sx=cx-u*.8,base=cy+u*2.4;ground(base,cx-u*4.5,cx+u*4.5);
+  // base housing
+  ctx.fillStyle='#3a4656';ctx.fillRect(sx-u*1,base-u*.9,u*2,u*.9);
+  const rise=turns*pitch;const topY=base-u*.9-u*2.6-rise;
+  // threaded shaft
+  const r=u*.38;const sh=base-u*.9-topY;
+  ctx.fillStyle='#8792a0';ctx.fillRect(sx-r,topY,2*r,sh);
+  ctx.strokeStyle='#d7dee6';ctx.lineWidth=2.2;
+  const phase=(turns%1)*pitch;
+  for(let y=topY-pitch+((phase)%pitch);y<base-u*.9;y+=pitch){if(y<topY)continue;ctx.beginPath();ctx.moveTo(sx-r,y);ctx.lineTo(sx+r,y-pitch*.5);ctx.stroke()}
+  // load platform on top
+  ctx.fillStyle=ACC;ctx.fillRect(sx-u*.9,topY-u*.2,u*1.8,u*.2);
+  box(sx,topY-u*.2,u*2.1,u*1,LOAD,0,'Load');
+  // handle (seen in perspective) rotating
+  const ang=turns*Math.PI*2;const hy=base-u*.5,hr=u*2.2;
+  const hx=sx+Math.cos(ang)*hr,hyy=hy+Math.sin(ang)*hr*.25;
+  ctx.strokeStyle=MET;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(sx,hy);ctx.lineTo(hx,hyy);ctx.stroke();
+  ctx.fillStyle=EFF;ctx.beginPath();ctx.arc(hx,hyy,u*.18,0,7);ctx.fill();
+  ctx.strokeStyle='rgba(255,159,67,.35)';ctx.lineWidth=1.5;ctx.setLineDash([5,5]);ctx.beginPath();ctx.ellipse(sx,hy,hr,hr*.25,0,0,7);ctx.stroke();ctx.setLineDash([]);
+  text('Effort turns the handle',sx+hr+u*.2,hy+u*.75,EFF,14,'right','600');
+  text('pitch = distance between threads',sx+r+u*.35,topY+sh*.45,LOAD,13,'left');
+  text('Handle travels '+(s*4*2*Math.PI*0.15).toFixed(2)+' m',cx+u*1.7,cy-u*2.4,EFF,15,'left','600');
+  text('Load rises '+(s*4*2).toFixed(1)+' mm',cx+u*1.7,cy-u*1.9,LOAD,15,'left','600');
+}
+function gear(x,y,teeth,mod,rot,col){
+  const R=teeth*mod/2,ad=mod*.9,dd=mod*1.1;ctx.fillStyle=col;ctx.beginPath();
+  for(let i=0;i<teeth;i++){const a=rot+i*2*Math.PI/teeth,w=Math.PI/teeth;
+    const pts=[[a-w*.55,R-dd],[a-w*.35,R+ad],[a+w*.35,R+ad],[a+w*.55,R-dd],[a+w*1.45,R-dd]];
+    for(const[aa,rr]of pts){const px=x+Math.cos(aa)*rr,py=y+Math.sin(aa)*rr;i===0&&aa===pts[0][0]?ctx.moveTo(px,py):ctx.lineTo(px,py)}}
+  ctx.closePath();ctx.fill();ctx.fillStyle='#0c1117';ctx.beginPath();ctx.arc(x,y,R*.18,0,7);ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(rot)*(R-dd),y+Math.sin(rot)*(R-dd));ctx.stroke();
+}
+function drawGears(t){
+  const{cx,cy,u}=stage();const mod=u*.135;const n1=12,n2=36;const R1=n1*mod/2,R2=n2*mod/2;
+  const x1=cx-u*2.6,x2=x1+R1+R2,y=cy;
+  const rot1=t/1000*1.6;const rot2=-rot1*n1/n2+Math.PI/n2;
+  gear(x2,y,n2,mod,rot2,LOAD);gear(x1,y,n1,mod,rot1,EFF);
+  text('Driver: 12 teeth',x1,y+R2+u*.6,EFF,15,'center','600');text('Driven: 36 teeth',x2,y+R2+u*.6,LOAD,15,'center','600');
+  const r1=(t/1000*1.6/(2*Math.PI)),r2=r1/3;
+  text('Turns: '+r1.toFixed(1),x1,y+R2+u*1.05,EFF,14);text('Turns: '+r2.toFixed(1),x2,y+R2+u*1.05,LOAD,14);
+  ctx.fillStyle=EFF;ctx.beginPath();ctx.arc(x1+Math.cos(rot1)*R1*.6,y+Math.sin(rot1)*R1*.6,5,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x2+Math.cos(rot2)*R2*.6,y+Math.sin(rot2)*R2*.6,6,0,7);ctx.fill();
+}
+const DRAW={lever1:t=>drawLever(t,1),lever2:t=>drawLever(t,2),lever3:t=>drawLever(t,3),wheel:drawWheel,pulley:drawPulley,ramp:drawRamp,wedge:drawWedge,screw:drawScrew,gears:drawGears};
+
+let idx=-1,start=0;const HOLD=20000;
+function next(){const card=document.getElementById('card');card.classList.add('hide');idx=(idx+1)%M.length;start=performance.now();
+  setTimeout(()=>{const m=M[idx];card.innerHTML=`<div class="kind">${m.kind}</div><h2>${m.name}</h2><div class="formula"><small>Ideal mechanical advantage</small>${m.formula}</div><div class="ex">${m.ex}</div><div class="where">${m.where}</div>`;card.classList.remove('hide')},500)}
+function frame(){
+  ctx.fillStyle='#0c1117';ctx.fillRect(0,0,W,H);
+  // blueprint grid
+  ctx.strokeStyle='rgba(79,209,197,.05)';ctx.lineWidth=1;for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  const t=performance.now()-start;const fade=Math.min(1,t/600);ctx.globalAlpha=fade;
+  if(idx>=0)DRAW[M[idx].id](t);
+  ctx.globalAlpha=1;
+  if(idx>=0&&t>HOLD)next();
+  requestAnimationFrame(frame);
+}
+next();requestAnimationFrame(frame);
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();next()}if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}});
+addEventListener('click',next);
+let idleT;addEventListener('mousemove',()=>{document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),3000)});
+</script>
+</body>
+</html>

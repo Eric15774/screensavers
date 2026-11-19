@@ -26,6 +26,14 @@ Each page is a full-screen science display that runs on its own. Every few secon
 | **Chart of the Nuclides** | Isotopes, half-lives and decay modes across the chart of the nuclides. | [Open](https://eric15774.github.io/screensavers/nuclides/) |
 | **SI Units and Prefixes** | The SI base units, derived units and metric prefixes. | [Open](https://eric15774.github.io/screensavers/si-units/) |
 
+### Engineering and technology
+
+| Screensaver | What it shows | Link |
+|---|---|---|
+| **Simple Machines** | Animations of the three classes of levers, the wheel and axle, a block and tackle, a ramp, a wedge, a screw jack and a gear train. Each one shows the mechanical advantage formula with a worked example and where students see it in everyday life. | [Open](https://eric15774.github.io/screensavers/simple-machines/) |
+| **How a Diesel Engine Works** | One cylinder of a turbocharged truck diesel running through intake, compression, power and exhaust, with live crank angle, approximate gas temperature and pressure. Cards cover compression ignition, the turbocharger, engine brakes, air brakes, efficiency and DPF/DEF, with CDL tips. | [Open](https://eric15774.github.io/screensavers/diesel-engine/) |
+| **Where Our Units Came From** | 24 everyday and odd units, from the inch and the furlong to horsepower, psi, the BTU and the decibel. Each one gives its origin, its exact modern definition and where you will run into it. Pairs well with the SI Units screensaver. | [Open](https://eric15774.github.io/screensavers/units-history/) |
+
 ## Using them in a classroom
 
 1. Open the link on the computer connected to the classroom screen.
@@ -44,6 +52,7 @@ The pages are built to run all day. The Solar System and Earthquake pages reload
 - **Internet:** Every page needs a connection to load. The earthquake page also checks the USGS feed every 5 minutes. If the connection drops, it keeps showing the last data it got.
 - **No setup:** Each screensaver is a single self-contained `index.html` file. There is nothing to install, and they work in any modern browser.
 - **Scale:** The solar system orbits are drawn closer together than they really are so all eight planets fit. The page says so on screen.
+- **Diesel numbers:** Temperatures and pressures on the diesel page are approximate values from a simple model of a turbocharged truck engine.
 - **Star distances:** Distances to far-off stars like Betelgeuse, Polaris and Deneb are uncertain, and the cards give the range astronomers report.
 
 ## Data sources
@@ -64,6 +73,9 @@ earthquakes/        Earthquakes: The Last 24 Hours
 geologic-time/      Earth's History in One Day
 starlight/          When This Light Left
 constellations/     Constellations
+simple-machines/    Simple Machines
+diesel-engine/      How a Diesel Engine Works
+units-history/      Where Our Units Came From
 periodic-table/     Periodic Table
 nuclides/           Chart of the Nuclides
 si-units/           SI Units and Prefixes

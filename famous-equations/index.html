@@ -26,7 +26,7 @@ body.idle{cursor:none}
 .frac>span:first-child{border-bottom:.06em solid currentColor;padding:0 .15em}
 .who{font-size:clamp(16px,1.5vw,24px);color:var(--chalk)}
 .who span{color:var(--muted)}
-.words{margin-top:1.2em;font-size:clamp(17px,1.6vw,27px);line-height:1.45;color:var(--blue);max-width:48vw}
+.words{margin-top:1.2em;font-size:clamp(15px,1.6vw,27px);line-height:1.45;color:var(--blue)}
 #card{position:fixed;right:5vw;top:50%;transform:translateY(-50%);width:min(31vw,440px);background:rgba(10,18,14,.55);border:1px solid var(--line);border-radius:14px;padding:clamp(18px,2vw,28px);transition:opacity .8s}
 #card h3{color:var(--yellow);font-size:clamp(11px,.85vw,13px);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45em}
 #card p{font-size:clamp(14px,1.1vw,18px);line-height:1.55;margin-bottom:1.1em}
@@ -123,9 +123,22 @@ function show(){
   const e=E[idx],st=document.getElementById('stage'),cd=document.getElementById('card');
   st.innerHTML=`<div class="name">${e.n}</div><div class="eq${e.small?' small':''}">${e.eq}</div><div class="who">${e.who} <span>· ${e.yr}</span></div><div class="words">${e.w}</div>`;
   cd.innerHTML=`<h3>What it changed</h3><p>${e.c}</p><div class="try"><h3>Try it</h3><p>${e.t}</p></div>`;
+  fit();
   st.classList.remove('hide');cd.classList.remove('hide');
   requestAnimationFrame(()=>st.querySelector('.eq').classList.add('write'));
 }
+// Keep everything on the left of the card, on any screen size
+function fit(){
+  const st=document.getElementById('stage'),cd=document.getElementById('card'),eq=st.querySelector('.eq');if(!eq)return;
+  const left=st.getBoundingClientRect().left,avail=cd.getBoundingClientRect().left-left-Math.max(24,innerWidth*0.025);
+  st.style.width=Math.max(200,avail)+'px';
+  eq.style.fontSize='';let size=parseFloat(getComputedStyle(eq).fontSize);
+  while(eq.scrollWidth>avail&&size>14){size*=0.94;eq.style.fontSize=size+'px'}
+  // also keep the whole block on screen vertically
+  st.style.top='';const maxBottom=innerHeight*0.93;let guard=0;
+  while(st.getBoundingClientRect().bottom>maxBottom&&size>14&&guard++<40){size*=0.94;eq.style.fontSize=size+'px'}
+}
+addEventListener('resize',()=>{fit()});
 function next(){document.getElementById('stage').classList.add('hide');document.getElementById('card').classList.add('hide');idx=(idx+1)%E.length;start=performance.now();setTimeout(show,800)}
 // chalkboard texture with faint eraser smudges
 const cv=document.getElementById('tex'),ctx=cv.getContext('2d');

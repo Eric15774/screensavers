@@ -21,7 +21,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%}
 #card .ago{color:var(--muted);font-size:clamp(13px,1.1vw,18px)}
 #card .era{display:inline-block;margin-top:.6em;padding:2px 10px;border-radius:999px;font-size:clamp(11px,.85vw,13px);font-weight:600;color:#1a140e}
 #card .fact{margin-top:1em;padding-top:1em;border-top:1px solid var(--line);font-size:clamp(13px,1.1vw,18px);line-height:1.55}
-#scale{position:fixed;left:3vw;bottom:5vh;color:var(--muted);font-size:clamp(11px,.9vw,14px);line-height:1.7;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+#scale{position:fixed;right:3vw;top:3vh;color:var(--muted);font-size:clamp(11px,.9vw,14px);line-height:1.7;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
 #scale b{color:var(--text)}
 #help{position:fixed;right:3vw;bottom:2vh;color:var(--muted);font-size:12px;opacity:.6}
 </style>
@@ -89,7 +89,7 @@ addEventListener('resize',resize);resize();
 let idx=-1,start=0,hand=0,handTarget=0;const HOLD=14000;
 // angle: midnight at top, clockwise, full circle = 24 h
 const ang=ma=>-Math.PI/2+(AGE-ma)/AGE*Math.PI*2;
-function geom(){const cx=W*0.37,cy=H*0.58,R=Math.min(W*0.24,H*0.31);return{cx,cy,R}}
+function geom(){const cardL=W-W*0.03-Math.min(W*0.32,460);const R=Math.min(H*0.31,(cardL-50)/2/1.45);const cx=Math.max(1.45*R+20,cardL*0.5);return{cx,cy:H*0.58,R}}
 
 function arc(cx,cy,r,w,a0,a1,col){ctx.lineCap='butt';ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.arc(cx,cy,r,a0,a1);ctx.stroke()}
 function frame(t){

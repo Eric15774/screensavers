@@ -73,7 +73,9 @@ The pages are built to run all day. The Solar System and Earthquake pages reload
 - Plate boundaries: Peter Bird (2003), *An updated digital model of plate boundaries*, via [fraxen/tectonicplates](https://github.com/fraxen/tectonicplates)
 - World map: [Natural Earth](https://www.naturalearthdata.com/) 1:110m land
 - Place photos: lead images of English Wikipedia articles, from [Wikimedia Commons](https://commons.wikimedia.org/), loaded live
-- Game map tiles: [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors and [CARTO](https://carto.com/attributions), drawn with [Leaflet](https://leafletjs.com/) (BSD-2 license, included in the page)
+- Game guessing map: [Natural Earth](https://www.naturalearthdata.com/) 1:50m countries (public domain) via [world-atlas](https://github.com/topojson/world-atlas), built into the page, so no API key is needed
+- Game answer map: [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors' standard tiles (free, no key). If they are blocked, the page falls back to the Natural Earth map
+- Map drawing: [Leaflet](https://leafletjs.com/) (BSD-2) and [topojson-client](https://github.com/topojson/topojson-client) (ISC), both included in the page
 - Planet positions: NASA JPL approximate Keplerian orbital elements (E. M. Standish)
 - Geologic time spans: International Commission on Stratigraphy chart
 - Element and nuclide data: Eric Longwell's data workbooks, also in the [spreadsheets](https://github.com/eric15774/spreadsheets) repo

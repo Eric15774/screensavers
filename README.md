@@ -44,6 +44,7 @@ Each page is a full-screen science display that runs on its own. Every few secon
 | **Equations That Changed the World** | 18 famous equations "written" on a chalkboard, from the Pythagorean theorem and Newton's laws to E = mc² and Shannon's information theory. Each card gives who and when, what it means in plain words, what it changed, and a quick example to try. | [Open](https://eric15774.github.io/screensavers/famous-equations/) |
 | **Laws, Rules and Paradoxes** | 52 laws of nature, rules of thumb and paradoxes in alphabetical order, so Archimedes' principle sits next to the Abilene paradox and Murphy's law sits next to Mendel. Color tags show which kind each one is. | [Open](https://eric15774.github.io/screensavers/laws-and-paradoxes/) |
 | **Fractals and Chaos** | Eight live animations: a Mandelbrot zoom to 100,000×, the chaos game building a Sierpinski triangle, the Barnsley fern, the Koch snowflake, three double pendulums drifting apart, the Lorenz butterfly, the logistic map's road to chaos, and a growing fractal tree. | [Open](https://eric15774.github.io/screensavers/fractals-and-chaos/) |
+| **Fractal Drift** | A calm, wordless version of Fractals and Chaos. Each scene fills the screen and runs for about a minute and a half before fading slowly to the next: an endless Mandelbrot zoom, a Julia set that slowly changes shape, a drifting strange attractor, the Lorenz butterfly, 140 double pendulums that start together and spread apart, the chaos game, the Barnsley fern, and a fractal tree in a breeze. | [Open](https://eric15774.github.io/screensavers/fractal-drift/) |
 
 ## Using them in a classroom
 
@@ -100,6 +101,7 @@ units-history/      Where Our Units Came From
 famous-equations/   Equations That Changed the World
 laws-and-paradoxes/ Laws, Rules and Paradoxes
 fractals-and-chaos/ Fractals and Chaos
+fractal-drift/      Fractal Drift
 periodic-table/     Periodic Table
 nuclides/           Chart of the Nuclides
 element-hourglass/  The Element Hourglass

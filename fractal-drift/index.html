@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fractal Drift</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+body.idle{cursor:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#fade{position:fixed;inset:0;background:#000;opacity:1;transition:opacity 3s ease;pointer-events:none}
+#fade.clear{opacity:0}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="fade"></div>
+<script>
+// Fractal Drift: slow, wordless fractals and chaos for a calm classroom screen.
+// Click or Space: next scene. F: full screen.
+const SCENE_MS = 90000;          // how long each scene runs
+const ZOOM_SCENE_MS = 150000;    // the Mandelbrot zoom gets a little longer
+const FADE_MS = 3000;
+
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let W, H, DPR;
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  if (scene && scene.init) scene.init();
+}
+const rnd = (a, b) => a + Math.random()*(b - a);
+const TAU = Math.PI*2;
+// soft cosine palettes (Inigo Quilez style), values 0..255
+function pal(t, p){ return [0,1,2].map(i => 255*(p.a[i] + p.b[i]*Math.cos(TAU*(p.c[i]*t + p.d[i])))); }
+const PALETTES = [
+  {a:[.5,.5,.5], b:[.5,.5,.5], c:[1,1,1], d:[.0,.10,.20]},   // rainbow, gentle
+  {a:[.45,.5,.6], b:[.35,.35,.4], c:[1,1,1], d:[.55,.6,.7]}, // ocean blues
+  {a:[.55,.45,.6], b:[.45,.35,.4], c:[1,1,.8], d:[.8,.9,.3]},// dusk purple and gold
+  {a:[.4,.55,.5], b:[.35,.4,.35], c:[1,1,1], d:[.3,.45,.55]} // sea green
+];
+function offscreen(w, h){ const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+
+// ---------------- Mandelbrot: endless slow zoom ----------------
+// Two images: the one on screen is slowly scaled up 1x to 2x while the next,
+// twice as deep, is computed a few rows at a time. Then they swap.
+const DEEP = [   // points on the edge of the set that stay detailed as you zoom
+  [-0.743643887037151, 0.131825904205330],
+  [-0.7746806106269039, -0.1374168856037867],
+  [-0.77568377, 0.13646737],
+  [-0.761574, -0.0847596]
+];
+const mandel = {
+  init(){
+    this.pt = DEEP[Math.random()*DEEP.length|0];
+    this.p = PALETTES[Math.random()*PALETTES.length|0];
+    this.rw = Math.round(W/1.5); this.rh = Math.round(H/1.5);   // render size (scaled up on screen)
+    this.span = 0.05 / Math.pow(2, Math.random()*8|0);              // width of view in the complex plane
+    this.cur = this.render(this.span, true);
+    this.next = null; this.job = this.startJob(this.span/2);
+    this.z = 1; this.halvings = 0;
+  },
+  iters(span){ return Math.min(2500, Math.round(250 + 70*Math.log2(3.2/span))); },
+  startJob(span){
+    const c = offscreen(this.rw, this.rh), g = c.getContext('2d');
+    return {span, c, g, img: g.createImageData(this.rw, this.rh), row: 0, maxIt: this.iters(span)};
+  },
+  rows(job, budgetMs){
+    const t0 = performance.now(), {rw, rh} = this, d = job.img.data, px = job.span/rw;
+    const x0 = this.pt[0] - job.span/2, y0 = this.pt[1] - px*rh/2;
+    while (job.row < rh && performance.now() - t0 < budgetMs){
+      const j = job.row++, ci = y0 + j*px;
+      for (let i = 0; i < rw; i++){
+        const cr = x0 + i*px; let zr = 0, zi = 0, k = 0, zr2 = 0, zi2 = 0;
+        while (k < job.maxIt && zr2 + zi2 < 256){ zi = 2*zr*zi + ci; zr = zr2 - zi2 + cr; zr2 = zr*zr; zi2 = zi*zi; k++; }
+        const o = (j*rw + i)*4;
+        if (k >= job.maxIt){ d[o] = d[o+1] = d[o+2] = 4; }
+        else { const sm = k + 1 - Math.log2(Math.log2(zr2 + zi2)/2); const c = pal(Math.sqrt(sm)*0.12 + 0.3, this.p);
+               const b = Math.min(1, Math.pow(sm/job.maxIt*6, 0.7)) * 0.95 + 0.05; d[o] = c[0]*b; d[o+1] = c[1]*b; d[o+2] = c[2]*b; }
+        d[o+3] = 255;
+      }
+    }
+    if (job.row >= rh){ job.g.putImageData(job.img, 0, 0); return true; }
+    return false;
+  },
+  render(span){ const job = this.startJob(span); this.rows(job, 1e9); return job.c; },
+  frame(dt){
+    if (!this.next && this.rows(this.job, 10)) this.next = this.job.c;
+    // zoom speed: double every ~22 seconds, but wait for the next image if needed
+    if (this.z < 2) this.z = Math.min(2, this.z * Math.pow(2, dt/22000));
+    if (this.z >= 2 && this.next){
+      this.cur = this.next; this.next = null; this.z = 1; this.span /= 2; this.halvings++;
+      if (this.halvings > 30){ this.init(); return; }   // stay inside double-precision limits
+      this.job = this.startJob(this.span/2);
+    }
+    const w = W*this.z, h = H*this.z;
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(this.cur, (W - w)/2, (H - h)/2, w, h);
+  }
+};
+
+// ---------------- Julia set slowly changing shape ----------------
+const julia = {
+  init(){
+    this.p = PALETTES[Math.random()*PALETTES.length|0];
+    this.s = 3.5; this.rw = Math.ceil(W/this.s); this.rh = Math.ceil(H/this.s);
+    this.c = offscreen(this.rw, this.rh); this.g = this.c.getContext('2d'); this.img = this.g.createImageData(this.rw, this.rh);
+    this.a = rnd(0, TAU); this.dir = Math.random() < .5 ? 1 : -1;
+  },
+  frame(dt){
+    this.a += this.dir * dt/1000 * 0.035;
+    const cr = 0.7885*Math.cos(this.a), ci = 0.7885*Math.sin(this.a);
+    const {rw, rh} = this, d = this.img.data, sc = 3.4/Math.min(rw, rh*1.0), maxIt = 110;
+    for (let j = 0; j < rh; j++){
+      const y = (j - rh/2)*sc;
+      for (let i = 0; i < rw; i++){
+        let zr = (i - rw/2)*sc, zi = y, k = 0, zr2 = zr*zr, zi2 = zi*zi;
+        while (k < maxIt && zr2 + zi2 < 64){ zi = 2*zr*zi + ci; zr = zr2 - zi2 + cr; zr2 = zr*zr; zi2 = zi*zi; k++; }
+        const o = (j*rw + i)*4;
+        if (k >= maxIt){ d[o] = d[o+1] = d[o+2] = 6; }
+        else { const sm = k + 1 - Math.log2(Math.log2(zr2 + zi2)/2); const c = pal(sm*0.035 + this.a*0.05, this.p);
+               const b = Math.min(1, Math.pow(sm/40, 0.8)); d[o] = c[0]*b; d[o+1] = c[1]*b; d[o+2] = c[2]*b; }
+        d[o+3] = 255;
+      }
+    }
+    this.g.putImageData(this.img, 0, 0);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(this.c, 0, 0, W, H);
+  }
+};
+
+// ---------------- Clifford strange attractor, slowly morphing ----------------
+const clifford = {
+  init(){
+    this.s = 2.5; this.rw = Math.ceil(W/this.s); this.rh = Math.ceil(H/this.s);
+    this.c = offscreen(this.rw, this.rh); this.g = this.c.getContext('2d'); this.img = this.g.createImageData(this.rw, this.rh);
+    this.dens = new Float32Array(this.rw*this.rh);
+    this.p = PALETTES[Math.random()*PALETTES.length|0];
+    this.base = [[-1.4, 1.6, 1.0, 0.7], [-1.7, 1.8, -1.9, -0.4], [1.7, 1.7, 0.6, 1.2]][Math.random()*3|0];
+    this.t = rnd(0, 100); this.x = 0.1; this.y = 0.1;
+  },
+  frame(dt){
+    this.t += dt/1000;
+    const [A0, B0, C0, D0] = this.base, t = this.t;
+    const a = A0 + 0.12*Math.sin(t*0.031), b = B0 + 0.12*Math.sin(t*0.023 + 1), c = C0 + 0.15*Math.sin(t*0.027 + 2), d = D0 + 0.15*Math.sin(t*0.019 + 3);
+    const {rw, rh, dens} = this; for (let i = 0; i < dens.length; i++) dens[i] *= 0.9;   // older points fade
+    const ex = 1 + Math.abs(c), ey = 1 + Math.abs(d), sc = Math.min(rw/(2*ex), rh/(2*ey))*0.92;
+    let x = this.x, y = this.y, max = 1;
+    const N = 160000;
+    for (let n = 0; n < N; n++){
+      const nx = Math.sin(a*y) + c*Math.cos(a*x), ny = Math.sin(b*x) + d*Math.cos(b*y); x = nx; y = ny;
+      const px = (rw/2 + x*sc)|0, py = (rh/2 + y*sc)|0;
+      if (px >= 0 && px < rw && py >= 0 && py < rh) dens[py*rw + px]++;
+    }
+    this.x = x; this.y = y;
+    for (let i = 0; i < dens.length; i++) if (dens[i] > max) max = dens[i];
+    const im = this.img.data, lm = Math.log(max + 1);
+    for (let i = 0; i < dens.length; i++){
+      const o = i*4;
+      if (dens[i] < 0.05){ im[o] = im[o+1] = im[o+2] = 0; im[o+3] = 255; continue; }
+      const v = Math.log(dens[i] + 1)/lm, col = pal(0.15 + v*0.7, this.p), k = Math.pow(v, 0.55);
+      im[o] = col[0]*k; im[o+1] = col[1]*k; im[o+2] = col[2]*k; im[o+3] = 255;
+    }
+    this.g.putImageData(this.img, 0, 0);
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(this.c, 0, 0, W, H);
+  }
+};
+
+// ---------------- Lorenz butterfly, turning slowly ----------------
+const lorenz = {
+  init(){
+    this.tr = [0,1,2].map(i => ({x: 1 + i*1e-4, y: 1, z: 20, path: []}));
+    this.rot = rnd(0, TAU); this.cols = [[255,140,120],[255,214,120],[120,220,255]];
+  },
+  frame(dt){
+    const h = 0.004, steps = Math.round(dt/1000 / 0.004 * 0.35);   // slowed down to about a third of real time
+    for (const p of this.tr){
+      for (let i = 0; i < Math.max(1, steps); i++){
+        const dx = 10*(p.y - p.x), dy = p.x*(28 - p.z) - p.y, dz = p.x*p.y - 8/3*p.z;
+        p.x += dx*h; p.y += dy*h; p.z += dz*h; p.path.push([p.x, p.y, p.z]);
+      }
+      if (p.path.length > 5000) p.path.splice(0, p.path.length - 5000);
+    }
+    this.rot += dt/1000*0.06;
+    const sc = Math.min(W, H)/46, cx = W/2, cy = H/2 + sc*1.5, cr = Math.cos(this.rot), sr = Math.sin(this.rot);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    this.tr.forEach((p, k) => {
+      const n = p.path.length, [r,g,b] = this.cols[k];
+      for (let s = 0; s < 10; s++){                     // draw in 10 bands so older parts are dimmer
+        const i0 = Math.floor(n*s/10), i1 = Math.floor(n*(s+1)/10);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${0.05 + 0.5*(s+1)/10})`; ctx.beginPath();
+        for (let i = i0; i <= Math.min(i1, n-1); i++){
+          const q = p.path[i], x = cx + (q[0]*cr - q[1]*sr)*sc, y = cy - (q[2] - 25)*sc;
+          i === i0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      const q = p.path[n-1]; if (q){ const x = cx + (q[0]*cr - q[1]*sr)*sc, y = cy - (q[2] - 25)*sc;
+        ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, TAU); ctx.fill(); }
+    });
+    ctx.globalCompositeOperation = 'source-over';
+  }
+};
+
+// ---------------- many double pendulums drifting apart ----------------
+const pendulums = {
+  init(){
+    const N = 140, a1 = rnd(2.2, 2.7), a2 = rnd(2.0, 2.8);
+    this.p = []; for (let i = 0; i < N; i++) this.p.push({a1: a1 + i*2e-7, a2, w1: 0, w2: 0, hue: 200 + 160*i/N});
+    this.trail = offscreen(cv.width, cv.height); this.tg = this.trail.getContext('2d'); this.tg.setTransform(DPR,0,0,DPR,0,0);
+  },
+  acc(a1, a2, w1, w2){
+    const g = 9.81, d = a1 - a2, den = 3 - Math.cos(2*d);
+    return [(-3*g*Math.sin(a1) - g*Math.sin(a1 - 2*a2) - 2*Math.sin(d)*(w2*w2 + w1*w1*Math.cos(d)))/den,
+            (2*Math.sin(d)*(2*w1*w1 + 2*g*Math.cos(a1) + w2*w2*Math.cos(d)))/den];
+  },
+  step(p, h){
+    const f = (a1, a2, w1, w2) => { const [b1, b2] = this.acc(a1, a2, w1, w2); return [w1, w2, b1, b2]; };
+    const k1 = f(p.a1, p.a2, p.w1, p.w2);
+    const k2 = f(p.a1 + h/2*k1[0], p.a2 + h/2*k1[1], p.w1 + h/2*k1[2], p.w2 + h/2*k1[3]);
+    const k3 = f(p.a1 + h/2*k2[0], p.a2 + h/2*k2[1], p.w1 + h/2*k2[2], p.w2 + h/2*k2[3]);
+    const k4 = f(p.a1 + h*k3[0], p.a2 + h*k3[1], p.w1 + h*k3[2], p.w2 + h*k3[3]);
+    p.a1 += h/6*(k1[0] + 2*k2[0] + 2*k3[0] + k4[0]); p.a2 += h/6*(k1[1] + 2*k2[1] + 2*k3[1] + k4[1]);
+    p.w1 += h/6*(k1[2] + 2*k2[2] + 2*k3[2] + k4[2]); p.w2 += h/6*(k1[3] + 2*k2[3] + 2*k3[3] + k4[3]);
+  },
+  frame(dt){
+    const sim = Math.min(0.05, dt/1000) * 0.45, h = 0.0025, n = Math.max(1, Math.round(sim/h));
+    const L = Math.min(W, H)*0.23, ox = W/2, oy = H*0.42;
+    const tg = this.tg;
+    tg.fillStyle = 'rgba(0,0,0,0.035)'; tg.fillRect(0, 0, W, H);   // trails fade slowly
+    for (const p of this.p){
+      for (let i = 0; i < n; i++) this.step(p, h);
+      p.x1 = ox + L*Math.sin(p.a1); p.y1 = oy + L*Math.cos(p.a1);
+      p.x2 = p.x1 + L*Math.sin(p.a2); p.y2 = p.y1 + L*Math.cos(p.a2);
+      tg.fillStyle = `hsla(${p.hue},80%,65%,.5)`; tg.fillRect(p.x2 - 1, p.y2 - 1, 2, 2);
+    }
+    ctx.drawImage(this.trail, 0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 1.2;
+    for (const p of this.p){
+      ctx.strokeStyle = `hsla(${p.hue},75%,62%,.16)`; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.arc(ox, oy, 4, 0, TAU); ctx.fill();
+  }
+};
+
+// ---------------- chaos game: shapes appearing out of random dots ----------------
+const chaos = {
+  init(){
+    const kinds = [{n:3, r:0.5, norepeat:false}, {n:5, r:0.382, norepeat:false}, {n:4, r:0.5, norepeat:true}, {n:6, r:0.333, norepeat:false}];
+    this.k = kinds[Math.random()*kinds.length|0];
+    const R = Math.min(W, H)*0.47, cx = W/2, cy = H/2 + (this.k.n === 3 ? R*0.12 : 0);
+    this.v = []; for (let i = 0; i < this.k.n; i++){ const a = -Math.PI/2 + i*TAU/this.k.n; this.v.push([cx + R*Math.cos(a), cy + R*Math.sin(a)]); }
+    this.pt = [cx, cy]; this.last = -1; this.p = PALETTES[Math.random()*PALETTES.length|0];
+    this.cols = this.v.map((_, i) => { const c = pal(i/this.k.n, this.p); return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},.55)`; });
+    this.layer = offscreen(cv.width, cv.height); this.lg = this.layer.getContext('2d'); this.lg.setTransform(DPR,0,0,DPR,0,0);
+    this.count = 0;
+  },
+  frame(){
+    const lg = this.lg, per = Math.min(1500, 60 + this.count/40);   // starts slow, then fills in
+    for (let i = 0; i < per; i++){
+      let j; do { j = Math.random()*this.k.n|0; } while (this.k.norepeat && j === this.last);
+      this.last = j; const v = this.v[j], r = this.k.r;
+      this.pt = [this.pt[0] + (v[0] - this.pt[0])*(1 - r), this.pt[1] + (v[1] - this.pt[1])*(1 - r)];
+      if (this.count++ > 20){ lg.fillStyle = this.cols[j]; lg.fillRect(this.pt[0], this.pt[1], 1, 1); }
+    }
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.drawImage(this.layer, 0, 0, W, H);
+  }
+};
+
+// ---------------- Barnsley fern growing ----------------
+const fern = {
+  init(){
+    this.layer = offscreen(cv.width, cv.height); this.lg = this.layer.getContext('2d'); this.lg.setTransform(DPR,0,0,DPR,0,0);
+    this.x = 0; this.y = 0; this.count = 0; this.flip = Math.random() < .5 ? -1 : 1;
+  },
+  frame(){
+    const lg = this.lg, sc = H*0.094, ox = W/2, oy = H*0.98, per = Math.min(2500, 80 + this.count/30);
+    for (let i = 0; i < per; i++){
+      const r = Math.random(); let nx, ny;
+      if (r < 0.01){ nx = 0; ny = 0.16*this.y; }
+      else if (r < 0.86){ nx = 0.85*this.x + 0.04*this.y; ny = -0.04*this.x + 0.85*this.y + 1.6; }
+      else if (r < 0.93){ nx = 0.2*this.x - 0.26*this.y; ny = 0.23*this.x + 0.22*this.y + 1.6; }
+      else { nx = -0.15*this.x + 0.28*this.y; ny = 0.26*this.x + 0.24*this.y + 0.44; }
+      this.x = nx; this.y = ny; this.count++;
+      const g = 120 + 100*(ny/10);
+      lg.fillStyle = `rgba(${40 + ny*6|0},${g|0},${70 + ny*4|0},.45)`;
+      lg.fillRect(ox + this.flip*nx*sc, oy - ny*sc, 1.1, 1.1);
+    }
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.drawImage(this.layer, 0, 0, W, H);
+  }
+};
+
+// ---------------- fractal tree in a gentle breeze ----------------
+const tree = {
+  init(){ this.t = 0; this.spread = rnd(0.38, 0.5); this.ratio = rnd(0.7, 0.76); this.blossom = Math.random() < .5 ? [255,170,200] : [255,215,120]; },
+  frame(dt){
+    this.t += dt/1000;
+    const grow = Math.min(12, 1 + this.t/2.5), depth = Math.floor(grow), part = grow - depth;
+    ctx.fillStyle = '#05060c'; ctx.fillRect(0, 0, W, H);
+    const g = ctx.createLinearGradient(0, H*0.85, 0, H); g.addColorStop(0, 'rgba(30,40,30,0)'); g.addColorStop(1, 'rgba(30,45,30,.6)');
+    ctx.fillStyle = g; ctx.fillRect(0, H*0.85, W, H*0.15);
+    ctx.lineCap = 'round';
+    const wind = t => 0.05*Math.sin(t*0.45) + 0.025*Math.sin(t*1.1 + 1);
+    const go = (x, y, len, ang, d) => {
+      if (d > depth) return;
+      const f = d === depth ? part : 1, sway = wind(this.t - d*0.15)*(d/4);
+      const a = ang + sway, x2 = x + Math.cos(a)*len*f, y2 = y + Math.sin(a)*len*f;
+      const k = d/12;
+      ctx.strokeStyle = `rgb(${90 + k*(this.blossom[0]-90)|0},${60 + k*(this.blossom[1]-60)|0},${45 + k*(this.blossom[2]-45)|0})`;
+      ctx.lineWidth = Math.max(0.6, 14*Math.pow(0.68, d));
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.stroke();
+      if (f < 1) return;
+      go(x2, y2, len*this.ratio, a - this.spread, d + 1);
+      go(x2, y2, len*this.ratio, a + this.spread*0.92, d + 1);
+    };
+    go(W/2, H*0.97, H*0.23, -Math.PI/2, 1);
+  }
+};
+
+// ---------------- scene control ----------------
+const SCENES = [mandel, julia, clifford, lorenz, pendulums, chaos, fern, tree];
+let order = [], oi = -1, scene = null, sceneStart = 0, last = 0, switching = false;
+const fadeEl = document.getElementById('fade');
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.random()*(i + 1)|0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function pick(){
+  if (++oi >= order.length){
+    const prev = scene; order = shuffle(SCENES.slice()); oi = 0;
+    if (order[0] === prev) order.push(order.shift());   // no scene twice in a row
+  }
+  scene = order[oi]; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); scene.init(); sceneStart = performance.now();
+  fadeEl.classList.add('clear');
+}
+function nextScene(){
+  if (switching) return; switching = true;
+  fadeEl.classList.remove('clear');
+  setTimeout(() => { pick(); switching = false; }, FADE_MS);
+}
+function loop(t){
+  const dt = Math.min(100, t - (last || t)); last = t;
+  if (scene) scene.frame(dt || 16);
+  const len = scene === mandel ? ZOOM_SCENE_MS : SCENE_MS;
+  if (scene && performance.now() - sceneStart > len) nextScene();
+  requestAnimationFrame(loop);
+}
+document.addEventListener('click', nextScene);
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space'){ e.preventDefault(); nextScene(); }
+  else if (e.key === 'f' || e.key === 'F'){ if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen(); }
+});
+let idleT; function wake(){ document.body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add('idle'), 3000); }
+addEventListener('mousemove', wake); wake();
+addEventListener('resize', resize);
+resize(); pick(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fractals and Chaos</title>
+<style>
+:root{--bg:#05060a;--panel:rgba(12,14,24,.86);--text:#eef0f8;--muted:#a0a6bf;--accent:#7ee0ff;--line:rgba(255,255,255,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+body.idle{cursor:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#title{position:fixed;left:3vw;top:3vh;text-shadow:0 1px 8px #000}
+#title h1{font-size:clamp(18px,2vw,32px);font-weight:600}
+#title p{color:var(--muted);font-size:clamp(12px,.95vw,15px);margin-top:.3em}
+#card{position:fixed;right:3vw;top:50%;transform:translateY(-50%);width:min(32vw,450px);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,2vw,28px);backdrop-filter:blur(6px);transition:opacity .7s}
+#card.hide{opacity:0}
+#card .kind{color:var(--accent);font-size:clamp(11px,.85vw,13px);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+#card h2{font-size:clamp(24px,2.5vw,40px);line-height:1.1;margin:.2em 0 .5em}
+#card .rule{font-family:"Cambria Math","Times New Roman",serif;font-size:clamp(17px,1.5vw,24px);background:rgba(126,224,255,.08);border:1px solid rgba(126,224,255,.3);border-radius:10px;padding:.5em .8em;margin-bottom:.9em}
+#card p{font-size:clamp(14px,1.08vw,17px);line-height:1.55;margin-bottom:.9em}
+#card .nat{border-top:1px solid var(--line);padding-top:.9em;color:var(--muted);font-size:clamp(13px,1vw,15px);margin-bottom:0}
+#card .nat strong{color:var(--text)}
+#hud{position:fixed;left:3vw;bottom:3vh;background:rgba(5,6,10,.6);padding:4px 10px;border-radius:8px;color:var(--muted);font-size:clamp(12px,1vw,15px);text-shadow:0 1px 6px #000;font-variant-numeric:tabular-nums}
+#hud b{color:var(--text)}
+#help{position:fixed;right:3vw;bottom:2vh;color:var(--muted);font-size:12px;opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title"><h1>Fractals and Chaos</h1><p>Simple rules, repeated over and over, can make endless detail or total unpredictability.</p></div>
+<div id="card" class="hide"></div>
+<div id="hud"></div>
+<div id="help">Click or Space: next &nbsp; F: full screen</div>
+<script>
+const S=[
+{id:'mandel',k:'Fractal',h:'The Mandelbrot Set',r:'z → z² + c',
+ p:'Pick a point c. Start with z = 0 and keep squaring and adding c. If z stays small forever, the point is in the set (black). The colors show how fast the other points escape.',
+ p2:'No matter how far you zoom into the edge, new detail keeps appearing. This zoom magnifies the "Seahorse Valley" about 100,000 times.',
+ n:'<strong>Who:</strong> Benoit Mandelbrot, an IBM researcher, made the first good pictures of it on computers around 1980.'},
+{id:'sier',k:'Fractal · the chaos game',h:'Sierpinski Triangle',r:'Jump halfway to a random corner. Repeat.',
+ p:'Start anywhere. Roll a die to pick one of the three corners, move halfway there, and put a dot. Repeat thousands of times.',
+ p2:'You might expect a random smear. Instead, a perfect pattern of triangles inside triangles appears every time.',
+ n:'<strong>Try it by hand:</strong> it works with a pencil, a ruler and a die. Polish mathematician Wacław Sierpiński described the triangle in 1915.'},
+{id:'fern',k:'Fractal',h:'Barnsley Fern',r:'4 simple rules, picked at random',
+ p:'Each new dot comes from the last one using one of four shrink-and-rotate rules, chosen at random. One rule draws the stem, one the main leaf, and two the side leaves.',
+ p2:'Every leaflet is a smaller copy of the whole fern. Michael Barnsley showed in 1988 that a whole plant can be stored as just a few numbers.',
+ n:'<strong>In nature:</strong> ferns, broccoli, cauliflower and tree branches all repeat their own shape at smaller and smaller sizes.'},
+{id:'koch',k:'Fractal',h:'Koch Snowflake',r:'Each step: add a bump to the middle third of every edge',
+ p:'Every step makes the outline 4⁄3 as long. Repeat forever and the perimeter becomes infinitely long.',
+ p2:'Yet the area never grows past 8⁄5 of the starting triangle. An infinite edge wrapped around a finite space.',
+ n:'<strong>In nature:</strong> coastlines, mountain ridges and frost patterns have this kind of rough, endlessly detailed edge. Helge von Koch described it in 1904.'},
+{id:'pend',k:'Chaos',h:'Double Pendulum',r:'Three pendulums start 0.001° apart',
+ p:'A pendulum hanging from a pendulum follows Newton\'s laws exactly. Nothing about it is random.',
+ p2:'Yet these three start almost identically, and within seconds they swing completely differently. Tiny differences grow until prediction is impossible.',
+ n:'<strong>That is chaos:</strong> a system that follows exact rules but is so sensitive to its starting point that its long-term future cannot be predicted.'},
+{id:'lorenz',k:'Chaos',h:'The Lorenz Attractor',r:'Three simple equations for moving air',
+ p:'In 1961 meteorologist Edward Lorenz reran a weather simulation and rounded one number from 0.506127 to 0.506. The forecast came out completely different.',
+ p2:'These two paths start 0.00001 apart. They trace the same butterfly shape, but they soon lose track of each other.',
+ n:'<strong>The butterfly effect:</strong> Lorenz asked whether a butterfly flapping in Brazil could set off a tornado in Texas. It is why detailed weather forecasts are only good for about a week or two.'},
+{id:'logistic',k:'Chaos',h:'The Road to Chaos',r:'x → r · x · (1 − x)',
+ p:'This simple rule models a population that grows but runs short of food. Each column shows where the population settles for one growth rate r.',
+ p2:'At low r it settles on one value. Turn r up and it splits into 2, then 4, then 8 values, faster and faster, until it becomes chaos.',
+ n:'<strong>A universal number:</strong> each split comes about 4.669 times sooner than the one before. Mitchell Feigenbaum found that same number in dripping faucets, electronic circuits and fluids.'},
+{id:'tree',k:'Fractal',h:'Fractal Tree',r:'Each branch splits into two smaller branches',
+ p:'One rule, applied ten times over, turns a single trunk into over a thousand branch tips.',
+ p2:'Living things use this design because it reaches a lot of space with very little material.',
+ n:'<strong>In nature and the body:</strong> trees, rivers, lightning bolts, and your lungs, where the airways branch about 23 times to reach some 480 million tiny air sacs.'}
+];
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');let W,H,DPR;
+const off=document.createElement('canvas'),octx=off.getContext('2d');
+function resize(){DPR=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);off.width=W;off.height=H;if(idx>=0)init()}
+let idx=-1,start=0,st={};const HOLD=22000;
+addEventListener('resize',resize);
+const hud=document.getElementById('hud');
+// drawing area left of the card
+function area(){return{x:W*0.04,y:H*0.14,w:W*0.56,h:H*0.73}}
+
+function init(){const s=S[idx];st={};octx.setTransform(1,0,0,1,0,0);octx.clearRect(0,0,W,H);
+  if(s.id==='mandel'){st.lw=Math.round(W/4);st.lh=Math.round(H/4);st.buf=document.createElement('canvas');st.buf.width=st.lw;st.buf.height=st.lh;st.bctx=st.buf.getContext('2d');st.img=st.bctx.createImageData(st.lw,st.lh)}
+  if(s.id==='sier'){const a=area();const sz=Math.min(a.w,a.h*1.12)*.95;const cx=a.x+a.w/2,cy=a.y+a.h*.55;st.v=[[cx,cy-sz*.5],[cx-sz*.55,cy+sz*.45],[cx+sz*.55,cy+sz*.45]];st.p=[cx,cy];st.n=0}
+  if(s.id==='fern'){st.x=0;st.y=0;st.n=0}
+  if(s.id==='pend'){st.p=[0,1,2].map(i=>({a1:2.2+i*1.745e-5,a2:2.2,w1:0,w2:0,trail:[]}));st.t=0}
+  if(s.id==='lorenz'){st.p=[{x:1,y:1,z:1,tr:[]},{x:1.00001,y:1,z:1,tr:[]}];st.t=0}
+  if(s.id==='logistic'){st.col=0}
+}
+// ---------- Mandelbrot ----------
+const MC=[-0.743643887037151,0.131825904205330];
+function palette(t){const a=[.5,.5,.5],b=[.5,.5,.5],c=[1,1,1],d=[0,.10,.20];return a.map((v,i)=>255*(v+b[i]*Math.cos(6.28318*(c[i]*t+d[i]))))}
+function drawMandel(el){
+  const z=Math.min(1,el/20000);const scale=3.2*Math.pow(1e-5,z); // width of view in the complex plane
+  const{lw,lh,img}=st;const iter=Math.round(90+45*Math.log10(3.2/scale));
+  const px=scale/lw;const data=img.data;
+  const x0=MC[0]-scale*0.33,y0=MC[1]-px*lh/2; // the target point sits left of the card
+  for(let j=0;j<lh;j++){const ci=y0+j*px;for(let i=0;i<lw;i++){const cr=x0+i*px;let zr=0,zi=0,k=0,zr2=0,zi2=0;
+    while(k<iter&&zr2+zi2<16){zi=2*zr*zi+ci;zr=zr2-zi2+cr;zr2=zr*zr;zi2=zi*zi;k++}
+    const o=(j*lw+i)*4;if(k>=iter){data[o]=data[o+1]=data[o+2]=0}else{const sm=k+1-Math.log2(Math.log2(zr2+zi2)/2);const c=palette(sm*0.025+0.6);data[o]=c[0];data[o+1]=c[1];data[o+2]=c[2]}data[o+3]=255}}
+  st.bctx.putImageData(img,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(st.buf,0,0,W,H);
+  hud.innerHTML='Magnification: <b>'+Math.round(3.2/scale).toLocaleString('en-US')+'×</b> · iterations per point: <b>'+iter+'</b>';
+}
+// ---------- Sierpinski chaos game ----------
+function drawSier(el){
+  octx.fillStyle='rgba(126,224,255,.75)';const v=st.v;const per=st.n<300?3:Math.min(2500,40+st.n/8);
+  for(let i=0;i<per;i++){const c=v[(Math.random()*3)|0];st.p=[(st.p[0]+c[0])/2,(st.p[1]+c[1])/2];octx.fillRect(st.p[0],st.p[1],1.1,1.1);st.n++}
+  ctx.drawImage(off,0,0,W,H);
+  for(const[i,c]of v.entries()){ctx.fillStyle='#ffcf5a';ctx.beginPath();ctx.arc(c[0],c[1],6,0,7);ctx.fill()}
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(st.p[0],st.p[1],4,0,7);ctx.fill();
+  hud.innerHTML='Dots placed: <b>'+st.n.toLocaleString('en-US')+'</b>';
+}
+// ---------- Barnsley fern ----------
+function drawFern(){
+  const a=area();const sc=a.h/10.5,ox=a.x+a.w/2,oy=a.y+a.h;const per=Math.min(4000,60+st.n/6);
+  for(let i=0;i<per;i++){const r=Math.random();let x=st.x,y=st.y,nx,ny;
+    if(r<.01){nx=0;ny=.16*y}else if(r<.86){nx=.85*x+.04*y;ny=-.04*x+.85*y+1.6}else if(r<.93){nx=.2*x-.26*y;ny=.23*x+.22*y+1.6}else{nx=-.15*x+.28*y;ny=.26*x+.24*y+.44}
+    st.x=nx;st.y=ny;st.n++;const g=120+Math.round(ny*12);octx.fillStyle=`rgb(${60+ny*6|0},${g},${70})`;octx.fillRect(ox+nx*sc,oy-ny*sc,1,1)}
+  ctx.drawImage(off,0,0,W,H);hud.innerHTML='Dots placed: <b>'+st.n.toLocaleString('en-US')+'</b>';
+}
+// ---------- Koch snowflake ----------
+function koch(p1,p2,d,out){if(d===0){out.push(p1);return}const dx=(p2[0]-p1[0])/3,dy=(p2[1]-p1[1])/3;const a=[p1[0]+dx,p1[1]+dy],b=[p1[0]+2*dx,p1[1]+2*dy];
+  const ang=-Math.PI/3;const c=[a[0]+dx*Math.cos(ang)-dy*Math.sin(ang),a[1]+dx*Math.sin(ang)+dy*Math.cos(ang)];koch(p1,a,d-1,out);koch(a,c,d-1,out);koch(c,b,d-1,out);koch(b,p2,d-1,out)}
+function drawKoch(el){
+  const a=area();const lvl=Math.min(6,Math.floor(el/2600));const R=Math.min(a.w,a.h)*.42;const cx=a.x+a.w/2,cy=a.y+a.h*.55;
+  const v=[0,1,2].map(i=>[cx+R*Math.sin(i*2*Math.PI/3),cy-R*Math.cos(i*2*Math.PI/3)]);const pts=[];
+  for(let i=0;i<3;i++)koch(v[i],v[(i+1)%3],lvl,pts);
+  ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();
+  ctx.fillStyle='rgba(126,224,255,.12)';ctx.fill();ctx.strokeStyle='#bfefff';ctx.lineWidth=1.5;ctx.stroke();
+  const per=Math.pow(4/3,lvl);hud.innerHTML='Step <b>'+lvl+'</b> · edges: <b>'+(3*Math.pow(4,lvl)).toLocaleString('en-US')+'</b> · perimeter: <b>'+per.toFixed(2)+'×</b> the start · area: <b>'+(1+(3/5)*(1-Math.pow(4/9,lvl))).toFixed(3)+'×</b>';
+}
+// ---------- Double pendulum ----------
+function dp(s){const g=9.81,{a1,a2,w1,w2}=s;const d=a1-a2,den=3-Math.cos(2*d);
+  const al1=(-g*3*Math.sin(a1)-g*Math.sin(a1-2*a2)-2*Math.sin(d)*(w2*w2+w1*w1*Math.cos(d)))/den;
+  const al2=(2*Math.sin(d)*(w1*w1*2+g*2*Math.cos(a1)+w2*w2*Math.cos(d)))/den;return[w1,w2,al1,al2]}
+function rk(s,h){const k1=dp(s);const s2={a1:s.a1+h/2*k1[0],a2:s.a2+h/2*k1[1],w1:s.w1+h/2*k1[2],w2:s.w2+h/2*k1[3]};const k2=dp(s2);
+  const s3={a1:s.a1+h/2*k2[0],a2:s.a2+h/2*k2[1],w1:s.w1+h/2*k2[2],w2:s.w2+h/2*k2[3]};const k3=dp(s3);const s4={a1:s.a1+h*k3[0],a2:s.a2+h*k3[1],w1:s.w1+h*k3[2],w2:s.w2+h*k3[3]};const k4=dp(s4);
+  s.a1+=h/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]);s.a2+=h/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]);s.w1+=h/6*(k1[2]+2*k2[2]+2*k3[2]+k4[2]);s.w2+=h/6*(k1[3]+2*k2[3]+2*k3[3]+k4[3])}
+const PC=['#ff6b6b','#ffd166','#7ee0ff'];
+function drawPend(dt){
+  const a=area();const L=Math.min(a.w,a.h)*.24;const ox=a.x+a.w/2,oy=a.y+a.h*.42;
+  const steps=8,h=Math.min(dt,40)/1000/steps*0.8;
+  for(const p of st.p){for(let i=0;i<steps;i++)rk(p,h);const x2=ox+L*Math.sin(p.a1)+L*Math.sin(p.a2),y2=oy+L*Math.cos(p.a1)+L*Math.cos(p.a2);p.trail.push([x2,y2]);if(p.trail.length>260)p.trail.shift()}
+  st.t+=dt;
+  st.p.forEach((p,k)=>{ctx.strokeStyle=PC[k];ctx.globalAlpha=.55;ctx.lineWidth=1.6;ctx.beginPath();p.trail.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.stroke();ctx.globalAlpha=1;
+    const x1=ox+L*Math.sin(p.a1),y1=oy+L*Math.cos(p.a1),x2=x1+L*Math.sin(p.a2),y2=y1+L*Math.cos(p.a2);
+    ctx.strokeStyle=PC[k];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    ctx.fillStyle=PC[k];ctx.beginPath();ctx.arc(x1,y1,7,0,7);ctx.fill();ctx.beginPath();ctx.arc(x2,y2,7,0,7);ctx.fill()});
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ox,oy,5,0,7);ctx.fill();
+  const sp=Math.max(...st.p.map(p=>Math.abs(p.a2-st.p[0].a2)))*180/Math.PI;
+  hud.innerHTML='Starting difference: <b>0.001°</b> · difference now: <b>'+(sp<1?sp.toFixed(3):Math.round(sp))+'°</b>';
+}
+// ---------- Lorenz ----------
+function drawLorenz(dt){
+  const a=area();const sc=Math.min(a.w,a.h)/62;const cx=a.x+a.w/2,cy=a.y+a.h*.5;const rot=st.t/9000;
+  const h=0.005,steps=Math.round(Math.min(dt,40)/1000/h*0.9*1.6);
+  for(const p of st.p){for(let i=0;i<steps;i++){const dx=10*(p.y-p.x),dy=p.x*(28-p.z)-p.y,dz=p.x*p.y-8/3*p.z;p.x+=dx*h;p.y+=dy*h;p.z+=dz*h}p.tr.push([p.x,p.y,p.z]);if(p.tr.length>1600)p.tr.shift()}
+  st.t+=dt;const proj=q=>[cx+(q[0]*Math.cos(rot)-q[1]*Math.sin(rot))*sc,cy-(q[2]-25)*sc];
+  st.p.forEach((p,k)=>{ctx.strokeStyle=k?'#ffd166':'#7ee0ff';ctx.lineWidth=1.3;ctx.beginPath();p.tr.forEach((q,i)=>{const[x,y]=proj(q);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.globalAlpha=.8;ctx.stroke();ctx.globalAlpha=1;
+    const[x,y]=proj(p.tr[p.tr.length-1]);ctx.fillStyle=k?'#ffd166':'#7ee0ff';ctx.beginPath();ctx.arc(x,y,6,0,7);ctx.fill()});
+  const d=Math.hypot(st.p[0].x-st.p[1].x,st.p[0].y-st.p[1].y,st.p[0].z-st.p[1].z);
+  hud.innerHTML='Distance between the two paths: <b>'+(d<0.001?d.toExponential(1):d.toFixed(d<1?3:1))+'</b> (started at 0.00001)';
+}
+// ---------- Logistic map ----------
+function drawLogistic(el){
+  const a=area();const r0=2.6,r1=4.0;const cols=Math.round(a.w);const target=Math.min(cols,Math.floor(el/13000*cols));
+  octx.fillStyle='rgba(126,224,255,.35)';
+  for(;st.col<target;st.col++){const r=r0+(r1-r0)*st.col/cols;let x=.5;for(let i=0;i<300;i++)x=r*x*(1-x);for(let i=0;i<160;i++){x=r*x*(1-x);octx.fillRect(a.x+st.col,a.y+a.h*(1-x)*.92+a.h*.04,1,1)}}
+  ctx.drawImage(off,0,0,W,H);
+  // axes and labels
+  ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(a.x,a.y+a.h);ctx.lineTo(a.x+a.w,a.y+a.h);ctx.stroke();
+  ctx.fillStyle='#a0a6bf';ctx.font='13px system-ui';ctx.textAlign='center';
+  for(const r of[2.6,3,3.449,3.57,4]){const x=a.x+(r-r0)/(r1-r0)*a.w;ctx.fillRect(x,a.y+a.h,1,6);ctx.fillText(r===3.449?'3.45':r,x,a.y+a.h+20)}
+  ctx.fillText('growth rate r →',a.x+a.w/2,a.y+a.h+40);
+  const lab=[[2.8,'1 value'],[3.25,'2 values'],[3.5,'4'],[3.8,'chaos']];
+  ctx.fillStyle='#ffd166';ctx.font='600 14px system-ui';for(const[r,t]of lab){const x=a.x+(r-r0)/(r1-r0)*a.w;if(st.col>(r-r0)/(r1-r0)*cols)ctx.fillText(t,x,a.y+16)}
+  const r=r0+(r1-r0)*Math.min(st.col,cols-1)/cols;hud.innerHTML='Growth rate r = <b>'+r.toFixed(3)+'</b>';
+}
+// ---------- Fractal tree ----------
+function branch(x,y,len,ang,d,sway,max){if(d===0)return;const x2=x+Math.cos(ang)*len,y2=y+Math.sin(ang)*len;
+  ctx.strokeStyle=d>3?`rgb(${120+(max-d)*6},${90+(max-d)*4},${60})`:`hsl(${100+d*8},55%,${45+(4-d)*6}%)`;ctx.lineWidth=Math.max(1,d*1.35);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();
+  const spread=.42+sway*.08;branch(x2,y2,len*.74,ang-spread+sway*.05,d-1,sway,max);branch(x2,y2,len*.74,ang+spread*.85+sway*.05,d-1,sway,max)}
+function drawTree(el){const a=area();const grow=Math.min(11,1+Math.floor(el/900));const sway=Math.sin(el/1400);ctx.lineCap='round';
+  branch(a.x+a.w/2,a.y+a.h,a.h*.26,-Math.PI/2,grow,sway,11);
+  hud.innerHTML='Levels: <b>'+grow+'</b> · branch tips: <b>'+Math.pow(2,grow-1).toLocaleString('en-US')+'</b>';}
+
+const DRAW={mandel:drawMandel,sier:drawSier,fern:drawFern,koch:drawKoch,pend:(el,dt)=>drawPend(dt),lorenz:(el,dt)=>drawLorenz(dt),logistic:drawLogistic,tree:drawTree};
+function next(){const card=document.getElementById('card');card.classList.add('hide');idx=(idx+1)%S.length;start=performance.now();init();
+  setTimeout(()=>{const s=S[idx];card.innerHTML=`<div class="kind">${s.k}</div><h2>${s.h}</h2><div class="rule">${s.r}</div><p>${s.p}</p><p>${s.p2}</p><p class="nat">${s.n}</p>`;card.classList.remove('hide')},400)}
+let last=performance.now();
+function frame(t){const dt=t-last;last=t;const el=performance.now()-start;
+  ctx.fillStyle='#05060a';ctx.fillRect(0,0,W,H);
+  DRAW[S[idx].id](el,dt);
+  if(el>HOLD)next();requestAnimationFrame(frame)}
+resize();next();requestAnimationFrame(frame);
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();next()}if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}});
+addEventListener('click',next);
+let idleT;addEventListener('mousemove',()=>{document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),3000)});
+</script>
+</body>
+</html>

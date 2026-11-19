@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laws, Rules and Paradoxes</title>
+<style>
+:root{--bg:#121019;--panel:rgba(32,28,44,.9);--text:#f0edf7;--muted:#a49cb8;--sci:#6fd3a8;--thumb:#ffb86b;--para:#c39bff;--line:rgba(255,255,255,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+body.idle{cursor:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#title{position:fixed;left:5vw;top:4vh}
+#title h1{font-size:clamp(18px,2vw,32px);font-weight:600}
+#title p{color:var(--muted);font-size:clamp(12px,.95vw,15px);margin-top:.3em}
+#letter{position:fixed;left:3vw;top:50%;transform:translateY(-52%);font-size:clamp(200px,34vw,560px);font-weight:900;line-height:1;color:rgba(255,255,255,.035);font-family:Georgia,serif;transition:opacity .8s}
+#stage{position:fixed;left:12vw;right:12vw;top:50%;transform:translateY(-50%);transition:opacity .8s}
+#stage.hide,#letter.hide{opacity:0}
+.tags{display:flex;gap:.6em;align-items:center}
+.tag{padding:3px 12px;border-radius:999px;font-size:clamp(11px,.9vw,14px);font-weight:700;color:#141019;text-transform:uppercase;letter-spacing:.08em}
+.field{color:var(--muted);font-size:clamp(12px,1vw,15px)}
+h2{font-size:clamp(36px,4.6vw,78px);line-height:1.05;margin:.3em 0 .35em;font-weight:800}
+.st{font-size:clamp(20px,2.2vw,36px);line-height:1.4;max-width:62ch}
+.ex{margin-top:1.6em;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;padding:1em 1.3em;font-size:clamp(14px,1.25vw,20px);line-height:1.55;max-width:70ch}
+.ex b{color:var(--c);font-size:.75em;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.3em}
+#legend{position:fixed;left:5vw;bottom:3.5vh;color:var(--muted);font-size:13px}
+#legend span{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 5px 0 14px;vertical-align:-1px}
+#help{position:fixed;right:5vw;bottom:3.5vh;color:var(--muted);font-size:12px;opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="letter" class="hide"></div>
+<div id="title"><h1>Laws, Rules and Paradoxes</h1><p>Serious science, rules of thumb and brain-twisters, in alphabetical order.</p></div>
+<div id="stage" class="hide"></div>
+<div id="legend"><span style="background:var(--sci)"></span>Law of nature <span style="background:var(--thumb)"></span>Rule of thumb <span style="background:var(--para)"></span>Paradox</div>
+<div id="help">Click or Space: next &nbsp; F: full screen</div>
+<script>
+// k: s = law of nature / science, t = rule of thumb, p = paradox
+const L=[
+['Abilene paradox','p','Group behavior','A group decides to do something that nobody in it actually wants, because each person assumes the others want it.','A family drives 53 miles to Abilene, Texas, for a bad dinner on a hot day. Afterward, each one admits they only went along to please the others.'],
+['Allen\'s rule','s','Biology','Animals from colder climates tend to have shorter arms, legs and ears than related animals from warmer climates.','The arctic fox has small, rounded ears that lose little heat. The desert fennec fox has huge ears that help it shed heat.'],
+['Amdahl\'s law','s','Computing','Speeding up part of a job can only help as much as that part matters. The slowest step that cannot be sped up sets the limit.','If 10% of a program must run one step at a time, it can never run more than 10 times faster, no matter how many processors you add.'],
+['Archimedes\' principle','s','Physics','An object in a fluid is pushed up by a force equal to the weight of the fluid it pushes aside.','A steel ship floats because its hull pushes aside a huge volume of water that weighs as much as the ship.'],
+['Benford\'s law','s','Mathematics','In many real-world lists of numbers, the first digit is 1 about 30% of the time, and 9 less than 5% of the time.','Accountants and tax investigators use it to spot made-up numbers, because people inventing figures tend to spread the first digits evenly.'],
+['Bergmann\'s rule','s','Biology','Within a group of related animals, those living in colder places tend to be larger.','A larger body has less skin surface for its size, so it holds heat better. White-tailed deer in Canada are bigger than those in Florida.'],
+['Bertrand\'s box paradox','p','Probability','Three boxes hold two gold coins, two silver coins, and one of each. You pull a gold coin from a random box. The chance the other coin is gold is 2 in 3, not 1 in 2.','There are three gold coins you could have pulled, and two of them sit in the all-gold box.'],
+['Betteridge\'s law of headlines','t','Journalism','Any headline that ends in a question mark can usually be answered with the word "no."','"Is This the End of the Smartphone?" If the writer could have said yes, the headline would have said so.'],
+['Birthday paradox','p','Probability','In a group of just 23 people, there is a better than 50% chance that two share a birthday. With 70 people it is over 99.9%.','It feels wrong because we think of our own birthday. But 23 people can form 253 different pairs, and any pair can match.'],
+['Braess\'s paradox','p','Traffic','Adding a new road to a network can make traffic slower for everyone.','When New York closed part of 42nd Street on Earth Day in 1990, traffic in the area got better instead of worse.'],
+['Brooks\'s law','t','Engineering','Adding people to a late software project makes it later.','New people need training, and every added person means more meetings and more chances for miscommunication. Fred Brooks wrote this in 1975.'],
+['Clarke\'s third law','t','Technology','Any sufficiently advanced technology is indistinguishable from magic.','Show a smartphone video call to someone from the year 1900. Science fiction writer Arthur C. Clarke wrote this in 1973.'],
+['Coastline paradox','p','Geometry','A coastline does not have a single true length. The smaller your ruler, the longer the coast measures.','Measure Britain with a 100 km ruler and with a 1 m ruler, and the second answer is far longer. This puzzle helped lead to the idea of fractals.'],
+['Cunningham\'s law','t','The internet','The best way to get the right answer on the internet is not to ask a question, but to post the wrong answer.','People who will not stop to answer a question will rush to correct a mistake.'],
+['Fermi paradox','p','Astronomy','The galaxy is old and has billions of stars with planets, so where is everybody?','Enrico Fermi asked this over lunch at Los Alamos in 1950. Scientists still debate the answer.'],
+['Friendship paradox','p','Networks','On average, your friends have more friends than you do.','Very popular people show up in many people\'s friend lists, which pulls the average up. It is true for most people, not just the shy ones.'],
+['Galileo\'s paradox','p','Mathematics','Some whole numbers are perfect squares and most are not. Yet you can pair every whole number with exactly one square, so there are just as many squares as whole numbers.','1↔1, 2↔4, 3↔9, 4↔16, forever. Galileo noticed this in 1638. Infinity does not follow normal counting rules.'],
+['Gall\'s law','t','Engineering','A complex system that works almost always grew out of a simple system that worked.','The internet grew out of a small network linking a few universities. Big systems designed all at once from scratch rarely work.'],
+['Goodhart\'s law','t','Economics','When a measure becomes a target, it stops being a good measure.','Pay workers by the number of bolts made and you get lots of tiny, useless bolts.'],
+['Gresham\'s law','t','Economics','Bad money drives out good. When two kinds of money have the same face value, people spend the less valuable kind and save the other.','After the US stopped using silver in dimes and quarters in 1965, people pulled the older silver coins out of circulation and kept them.'],
+['Hanlon\'s razor','t','Everyday life','Never assume someone meant harm when a simple mistake explains what happened.','The driver who cut you off probably did not see you. It is a good habit for keeping your temper.'],
+['Hilbert\'s hotel','p','Mathematics','A hotel with infinitely many rooms is completely full, yet it can still take a new guest.','Ask every guest to move from room n to room n + 1. Room 1 is now free. David Hilbert used this to show how strange infinity is.'],
+['Hofstadter\'s law','t','Planning','It always takes longer than you expect, even when you take into account Hofstadter\'s law.','Douglas Hofstadter wrote it in 1979 about chess computers, which took far longer to beat champions than experts predicted.'],
+['Hubble\'s law','s','Astronomy','The farther away a galaxy is, the faster it is moving away from us.','This was the first strong evidence that the universe is expanding. Edwin Hubble published it in 1929.'],
+['Jevons paradox','p','Economics','Making something more efficient can make people use more of it, not less.','In 1865 William Jevons noticed that better steam engines made coal cheaper to use, so Britain burned more coal than ever.'],
+['Kepler\'s second law','s','Astronomy','A planet moves faster when it is closer to the Sun and slower when it is farther away. A line from the Sun to the planet sweeps out equal areas in equal times.','Earth is closest to the Sun in early January, and it is moving about 1 km/s faster then than in July.'],
+['Le Chatelier\'s principle','s','Chemistry','When something disturbs a system in balance, the system shifts to undo part of the change.','Open a bottle of soda and the pressure inside drops. The soda answers by releasing dissolved carbon dioxide as bubbles, pushing the pressure back up.'],
+['Liar paradox','p','Logic','"This sentence is false." If it is true, then it is false. If it is false, then it is true.','Ancient Greek thinkers argued about it, and it still matters in logic and computer science today.'],
+['Lindy effect','t','Ideas and culture','The longer something has lasted, the longer it is likely to keep lasting. This applies to things like books, ideas and tools, not to living things.','A book still read after 100 years will probably be read for another 100. This year\'s bestseller may be forgotten in five.'],
+['Mendel\'s law of segregation','s','Genetics','Each parent passes on only one of its two copies of each gene, chosen at random.','Gregor Mendel worked this out by breeding pea plants in a monastery garden in the 1850s and 1860s.'],
+['Metcalfe\'s law','t','Networks','The value of a network grows roughly with the square of the number of users.','One telephone is useless. Two make one connection, five make 10, and 1,000 make nearly 500,000.'],
+['Monty Hall problem','p','Probability','On a game show, a car is behind one of three doors. You pick one. The host, who knows where the car is, opens another door showing a goat. You should switch.','Switching wins 2 out of 3 times. Your first pick had a 1 in 3 chance, and the host\'s choice moved the other 2 in 3 onto the remaining door.'],
+['Moore\'s law','t','Computing','The number of transistors on a computer chip doubles about every two years.','Gordon Moore noticed the trend in 1965. Chips went from a few thousand transistors in the early 1970s to tens of billions today.'],
+['Murphy\'s law','t','Engineering','Anything that can go wrong will go wrong.','It came from Air Force rocket sled tests around 1949. Engineers use it as a reason to design things so they cannot be assembled the wrong way.'],
+['Newton\'s third law','s','Physics','For every action there is an equal and opposite reaction.','A rocket pushes exhaust gas backward, and the gas pushes the rocket forward. It works in empty space, with nothing to push against.'],
+['Occam\'s razor','t','Reasoning','When two explanations fit the facts equally well, the simpler one is usually the better bet.','If the truck will not start and the headlights are dim, check the battery before suspecting the computer.'],
+['Olbers\' paradox','p','Astronomy','If the universe were endless, unchanging and full of stars, every direction would end on a star, and the night sky would blaze like the Sun. So why is it dark?','Because the universe has a beginning. Light from very distant stars has not had time to reach us, and expansion stretches the rest out of view.'],
+['Pareto principle','t','Economics','Roughly 80% of the effects come from 20% of the causes.','A shop might find that 20% of its customers bring in 80% of its sales. It is a rule of thumb, not an exact law.'],
+['Parkinson\'s law','t','Work','Work expands to fill the time available for it.','Give a class two weeks for a one-night assignment and many students will take two weeks. Cyril Parkinson wrote it in 1955.'],
+['Pascal\'s principle','s','Physics','Pressure applied to a fluid in a closed system spreads equally through the whole fluid.','A small push on a brake pedal becomes a large clamping force at the wheels. Hydraulic jacks and lifts work the same way.'],
+['Peter principle','t','Work','In a company, people tend to be promoted until they reach a job they are not good at.','A great mechanic becomes shop manager, a very different job. Laurence Peter described it in 1969.'],
+['Potato paradox','p','Mathematics','You have 100 pounds of potatoes that are 99% water. You let them dry until they are 98% water. They now weigh 50 pounds.','The dry part stays at 1 pound. At 98% water, that 1 pound must be 2% of the total, so the total is 50 pounds.'],
+['Russell\'s paradox','p','Logic','A village barber shaves every man who does not shave himself, and only those men. Who shaves the barber?','If he shaves himself, he should not. If he does not, he must. Bertrand Russell found a version of this in set theory in 1901, and it shook the foundations of math.'],
+['Ship of Theseus','p','Philosophy','If you replace every plank of a ship one at a time, is it still the same ship?','The same question applies to a classic car restored with all new parts, or to your body, which replaces most of its cells over the years.'],
+['Simpson\'s paradox','p','Statistics','A trend can appear in every group of data and then reverse when the groups are combined.','In a famous 1973 study of graduate admissions, the overall numbers seemed to favor men, but most individual departments admitted women at equal or higher rates.'],
+['Sorites paradox','p','Philosophy','One grain of sand is not a heap. Adding one grain never turns a non-heap into a heap. So how does a heap ever form?','It shows how fuzzy everyday words like heap, tall or bald can be.'],
+['Stigler\'s law of eponymy','t','History of science','No scientific discovery is named after the person who actually discovered it first.','Statistician Stephen Stigler named it in 1980, and he credited the idea to sociologist Robert Merton, which proves the point.'],
+['Sturgeon\'s law','t','Culture','Ninety percent of everything is junk.','Science fiction writer Theodore Sturgeon said this when critics claimed most science fiction was bad. His point: so is most of every other kind of writing.'],
+['Titius-Bode rule','t','Astronomy','A simple number pattern roughly predicts the distances of the planets from the Sun: 0.4, 0.7, 1.0, 1.6, 2.8, 5.2, 10.0 AU.','It predicted something at 2.8 AU, and the dwarf planet Ceres was found there in 1801. Then it failed badly for Neptune.'],
+['Twin paradox','p','Physics','One twin rides a rocket near light speed and returns home younger than the twin who stayed on Earth.','It is real. In 1971 atomic clocks flown around the world on airliners came back a tiny fraction of a second off from clocks left on the ground.'],
+['Zeno\'s paradox','p','Philosophy','Achilles can never catch a tortoise with a head start. Each time he reaches where it was, it has moved a bit farther.','The trick is that infinitely many smaller and smaller steps can add up to a finite distance and time. 1⁄2 + 1⁄4 + 1⁄8 + … = 1.'],
+['Zipf\'s law','s','Language','The most common word in a language appears about twice as often as the second most common, three times as often as the third, and so on.','In English, "the" makes up about 7% of all words written. The pattern also shows up in city sizes and website traffic.']
+];
+const KIND={s:['Law of nature','var(--sci)'],t:['Rule of thumb','var(--thumb)'],p:['Paradox','var(--para)']};
+let idx=Math.floor(Math.random()*L.length)-1,start=0;const HOLD=16000;
+function show(){const[n,k,f,st,ex]=L[idx],[kl,c]=KIND[k];
+  const s=document.getElementById('stage');s.style.setProperty('--c',c);
+  s.innerHTML=`<div class="tags"><span class="tag" style="background:${c}">${kl}</span><span class="field">${f}</span></div><h2>${n}</h2><div class="st">${st}</div><div class="ex"><b>${k==='p'?'Here is the twist':'Example'}</b>${ex}</div>`;
+  const le=document.getElementById('letter');le.textContent=n[0];
+  s.classList.remove('hide');le.classList.remove('hide');pal=k}
+function next(){document.getElementById('stage').classList.add('hide');document.getElementById('letter').classList.add('hide');idx=(idx+1)%L.length;start=performance.now();setTimeout(show,800)}
+// floating background symbols
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');let W,H,pal='s',sym=[];
+function resize(){const d=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);
+  sym=[];const chars='?∞≈∴∑π%!∅≠';for(let i=0;i<34;i++)sym.push({x:Math.random()*W,y:Math.random()*H,c:chars[i%chars.length],s:14+Math.random()*30,v:.08+Math.random()*.2,r:Math.random()*6})}
+addEventListener('resize',resize);resize();
+const COL={s:'111,211,168',t:'255,184,107',p:'195,155,255'};
+function frame(t){ctx.clearRect(0,0,W,H);const c=COL[pal];
+  for(const o of sym){o.y-=o.v;if(o.y<-40){o.y=H+40;o.x=Math.random()*W}ctx.save();ctx.translate(o.x,o.y);ctx.rotate(Math.sin(t/4000+o.r)*.3);ctx.fillStyle=`rgba(${c},.07)`;ctx.font=o.s+'px Georgia,serif';ctx.fillText(o.c,0,0);ctx.restore()}
+  if(performance.now()-start>HOLD)next();requestAnimationFrame(frame)}
+next();requestAnimationFrame(frame);
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();next()}if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}});
+addEventListener('click',next);
+let idleT;addEventListener('mousemove',()=>{document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),3000)});
+</script>
+</body>
+</html>

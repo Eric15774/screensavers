@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Equations That Changed the World</title>
+<style>
+:root{--board:#1d2a23;--chalk:#f3f1e7;--muted:#b9c2b4;--yellow:#f6e27a;--pink:#f4a7b9;--blue:#9fd3f0;--line:rgba(255,255,255,.14)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--board);color:var(--chalk);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overflow:hidden}
+body.idle{cursor:none}
+#tex{position:fixed;inset:0;width:100%;height:100%}
+#frame{position:fixed;inset:1.6vh;border:clamp(8px,1.2vh,16px) solid #6b4a2b;border-radius:6px;box-shadow:inset 0 0 60px rgba(0,0,0,.55);pointer-events:none}
+#title{position:fixed;left:5vw;top:5vh}
+#title h1{font-size:clamp(18px,2vw,32px);font-weight:600;color:var(--muted);letter-spacing:.02em}
+#stage{position:fixed;left:5vw;top:18vh;width:52vw;transition:opacity .8s}
+#stage.hide,#card.hide{opacity:0}
+.name{font-size:clamp(14px,1.2vw,20px);color:var(--yellow);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+.eq{font-family:"Cambria Math","STIX Two Math","Latin Modern Math","Times New Roman",serif;font-size:clamp(44px,6.2vw,108px);line-height:1.15;margin:.35em 0 .3em;white-space:nowrap;
+  clip-path:inset(0 100% 0 0);text-shadow:0 0 1px rgba(255,255,255,.6),0 0 14px rgba(255,255,255,.08)}
+.eq.write{animation:write 2.6s steps(40,end) forwards}
+@keyframes write{to{clip-path:inset(0 0 0 0)}}
+.eq.small{font-size:clamp(22px,2.4vw,40px);line-height:1.3;display:grid;grid-template-columns:auto auto;gap:.2em 1.4em;width:max-content}
+.eq i{font-style:italic}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.8em;margin:0 .1em}
+.frac>span:first-child{border-bottom:.06em solid currentColor;padding:0 .15em}
+.who{font-size:clamp(16px,1.5vw,24px);color:var(--chalk)}
+.who span{color:var(--muted)}
+.words{margin-top:1.2em;font-size:clamp(17px,1.6vw,27px);line-height:1.45;color:var(--blue);max-width:48vw}
+#card{position:fixed;right:5vw;top:50%;transform:translateY(-50%);width:min(31vw,440px);background:rgba(10,18,14,.55);border:1px solid var(--line);border-radius:14px;padding:clamp(18px,2vw,28px);transition:opacity .8s}
+#card h3{color:var(--yellow);font-size:clamp(11px,.85vw,13px);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45em}
+#card p{font-size:clamp(14px,1.1vw,18px);line-height:1.55;margin-bottom:1.1em}
+#card .try{border-top:1px dashed var(--line);padding-top:1em}
+#card .try p{color:var(--pink);margin-bottom:0}
+#help{position:fixed;right:5vw;bottom:4.5vh;color:var(--muted);font-size:12px;opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="tex"></canvas>
+<div id="frame"></div>
+<div id="title"><h1>Equations That Changed the World</h1></div>
+<div id="stage" class="hide"></div>
+<div id="card" class="hide"></div>
+<div id="help">Click or Space: next equation &nbsp; F: full screen</div>
+<script>
+const F=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const E=[
+{n:'Pythagorean theorem',eq:'<i>a</i><sup>2</sup> + <i>b</i><sup>2</sup> = <i>c</i><sup>2</sup>',who:'Pythagoras',yr:'about 500 BC',
+ w:'In a right triangle, the two short sides squared add up to the long side squared.',
+ c:'Builders, surveyors and navigators have used it for thousands of years. Babylonian clay tablets show the idea more than 1,000 years before Pythagoras. Today it is how GPS and video games work out distances.',
+ t:'Is a corner square? Measure 3 ft along one wall and 4 ft along the other. If the diagonal is exactly 5 ft, it is a true right angle.'},
+{n:'Area of a circle',eq:'<i>A</i> = π<i>r</i><sup>2</sup>',who:'Archimedes',yr:'about 250 BC',
+ w:'A circle\'s area is pi times its radius squared. Pi is about 3.14159 and its digits never end or repeat.',
+ c:'Archimedes trapped pi between 3 10⁄71 and 3 1⁄7 by drawing polygons with 96 sides inside and outside a circle. Every pipe, wheel, tank and gear is sized with this.',
+ t:'A 12-inch pizza has radius 6 in, so A = π × 36 ≈ 113 square inches. A 16-inch pizza is about 201. One bigger pizza beats two small ones.'},
+{n:'Logarithms',eq:'log(<i>x y</i>) = log <i>x</i> + log <i>y</i>',who:'John Napier',yr:'1614',
+ w:'A logarithm turns multiplying into adding, which is much easier to do by hand.',
+ c:'Astronomers and engineers used tables of logarithms and slide rules for over 300 years, including the engineers who planned the Apollo Moon missions. Logs also run the decibel, pH and earthquake magnitude scales.',
+ t:'log 100 = 2 and log 1,000 = 3. So log(100 × 1,000) = 2 + 3 = 5, and 10⁵ = 100,000.'},
+{n:'Snell\'s law of refraction',eq:'<i>n</i><sub>1</sub> sin <i>θ</i><sub>1</sub> = <i>n</i><sub>2</sub> sin <i>θ</i><sub>2</sub>',who:'Willebrord Snell',yr:'1621 (Ibn Sahl had it in 984)',
+ w:'Light bends when it passes from one material into another, and this tells you exactly how much.',
+ c:'It made it possible to design lenses for eyeglasses, microscopes, telescopes and cameras. Fiber optic internet cables depend on it to keep light trapped inside the glass.',
+ t:'A straw in a glass of water looks bent at the surface. Light from the straw bends as it leaves the water (n ≈ 1.33) into air (n ≈ 1.00).'},
+{n:'Hooke\'s law',eq:'<i>F</i> = −<i>k x</i>',who:'Robert Hooke',yr:'1678',
+ w:'Stretch or squeeze a spring and it pushes back with a force proportional to how far you moved it.',
+ c:'It explains springs, scales, shock absorbers and the way buildings and bridges flex. It is the starting point for understanding anything that vibrates.',
+ t:'If 10 N stretches a spring 2 cm, then k = 5 N/cm, and 30 N will stretch it 6 cm (as long as you do not overstretch it).'},
+{n:'Newton\'s second law',eq:'<i>F</i> = <i>m a</i>',who:'Isaac Newton',yr:'1687',
+ w:'Force equals mass times acceleration. The heavier something is, the more force it takes to speed it up or slow it down.',
+ c:'Together with his other laws, it explained everything from falling apples to orbiting moons. Every car, plane, rocket and roller coaster is designed with it.',
+ t:'An 80,000 lb truck has about 20 times the mass of a 4,000 lb car. To stop at the same rate, it needs about 20 times the braking force.'},
+{n:'Universal gravitation',eq:'<i>F</i> = <i>G</i> '+F('<i>m</i><sub>1</sub><i>m</i><sub>2</sub>','<i>r</i><sup>2</sup>'),who:'Isaac Newton',yr:'1687',
+ w:'Every mass pulls on every other mass. Double the distance and the pull drops to one quarter.',
+ c:'The same rule governs a dropped wrench and the orbit of the Moon. It let Edmond Halley predict the return of his comet and lets NASA plan spacecraft paths today.',
+ t:'Astronauts on the space station still feel about 90% of Earth\'s gravity. They float because they are falling around Earth together with the station.'},
+{n:'Bernoulli\'s principle',eq:'<i>P</i> + ½<i>ρv</i><sup>2</sup> + <i>ρgh</i> = constant',who:'Daniel Bernoulli',yr:'1738',
+ w:'Where a moving fluid speeds up, its pressure drops.',
+ c:'It helps explain carburetors, perfume sprayers, chimneys drawing smoke, curveballs and part of how wings make lift.',
+ t:'Blow across the top of a strip of paper held under your lip. The fast air above has lower pressure, and the paper rises.'},
+{n:'Kinetic energy',eq:'<i>KE</i> = ½<i>m v</i><sup>2</sup>',who:'Émilie du Châtelet',yr:'1740s',
+ w:'The energy of a moving object grows with the square of its speed.',
+ c:'Du Châtelet argued, using experiments that dropped balls into soft clay, that energy depends on speed squared. That settled a major argument in physics. The ½ was added later, in 1829. It is why speed matters so much in crashes.',
+ t:'Double your speed from 30 to 60 mph and you have 4 times the energy to get rid of. Braking distance roughly quadruples too.'},
+{n:'Euler\'s identity',eq:'<i>e</i><sup><i>iπ</i></sup> + 1 = 0',who:'Leonhard Euler',yr:'1748',
+ w:'Five of the most important numbers in math, 0, 1, π, e and i, linked in one short line.',
+ c:'It comes from Euler\'s formula, which connects exponents to circles and waves. Electrical engineers use that formula every day to analyze AC circuits and signals.',
+ t:'Mathematicians often vote it the most beautiful equation. e ≈ 2.718, π ≈ 3.14159, and i is the square root of −1.'},
+{n:'Euler\'s polyhedron formula',eq:'<i>V</i> − <i>E</i> + <i>F</i> = 2',who:'Leonhard Euler',yr:'1750s',
+ w:'For any solid with flat faces and no holes, vertices minus edges plus faces always equals 2.',
+ c:'It was an early step toward topology, the math of shapes that can stretch and bend. Topology now shows up in everything from DNA to computer networks.',
+ t:'A cube: 8 corners − 12 edges + 6 faces = 2. A triangular pyramid: 4 − 6 + 4 = 2. Try a soccer ball: 60 − 90 + 32 = 2.'},
+{n:'Ohm\'s law',eq:'<i>V</i> = <i>I R</i>',who:'Georg Ohm',yr:'1827',
+ w:'Voltage equals current times resistance.',
+ c:'It is the first rule every electrician and electronics tech learns. Ohm\'s fellow scientists dismissed it at first; today the unit of resistance carries his name.',
+ t:'A 12 V truck battery across a 6 Ω load pushes 12 ÷ 6 = 2 amps of current.'},
+{n:'Ideal gas law',eq:'<i>P V</i> = <i>n R T</i>',who:'Émile Clapeyron',yr:'1834',
+ w:'Pressure, volume and temperature of a gas are tied together. Change one and the others respond.',
+ c:'It combined the earlier laws of Boyle, Charles and Gay-Lussac. Engines, air compressors, weather balloons and scuba tanks are all designed with it.',
+ t:'Tire pressure rises as tires heat up on the road. That is why you check pressure cold.'},
+{n:'Second law of thermodynamics',eq:'Δ<i>S</i> ≥ 0',who:'Rudolf Clausius',yr:'1850s',
+ w:'In an isolated system, entropy (disorder) never goes down. Heat flows from hot to cold on its own, never the reverse.',
+ c:'It sets a hard limit on how efficient any engine can be, and it is why perpetual motion machines can never work.',
+ t:'An ice cube melts in warm water, but you will never see lukewarm water spontaneously form an ice cube.'},
+{n:'Maxwell\'s equations',small:true,eq:'<div>∇·<b>E</b> = '+F('<i>ρ</i>','<i>ε</i><sub>0</sub>')+'</div><div>∇·<b>B</b> = 0</div><div>∇×<b>E</b> = −'+F('∂<b>B</b>','∂<i>t</i>')+'</div><div>∇×<b>B</b> = <i>μ</i><sub>0</sub><b>J</b> + <i>μ</i><sub>0</sub><i>ε</i><sub>0</sub>'+F('∂<b>E</b>','∂<i>t</i>')+'</div>',who:'James Clerk Maxwell',yr:'1860s',
+ w:'Four equations that describe all electricity and magnetism, and show that light is an electromagnetic wave.',
+ c:'Maxwell predicted invisible waves that travel at the speed of light. Heinrich Hertz made them in 1887, and radio, TV, radar, Wi-Fi and cell phones followed.',
+ t:'A changing magnetic field makes electricity (the third equation). That is how every generator and alternator works.'},
+{n:'Mass-energy equivalence',eq:'<i>E</i> = <i>m c</i><sup>2</sup>',who:'Albert Einstein',yr:'1905',
+ w:'Mass and energy are two forms of the same thing. A tiny amount of mass holds an enormous amount of energy.',
+ c:'It explains why the Sun shines, how nuclear power plants work, and why the GPS system has to account for relativity.',
+ t:'The Sun turns about 4 million tons of mass into energy every second. One gram of mass equals roughly the energy of 21,000 tons of TNT.'},
+{n:'Schrödinger equation',eq:'<i>iħ</i> '+F('∂<i>ψ</i>','∂<i>t</i>')+' = <i>Ĥψ</i>',who:'Erwin Schrödinger',yr:'1926',
+ w:'It describes how the wave of a quantum particle, like an electron, changes over time.',
+ c:'Quantum mechanics made possible the transistor, the laser, LEDs, MRI scanners and every computer chip ever built.',
+ t:'Electrons in atoms can only have certain energies. That is why neon signs glow in specific colors.'},
+{n:'Information theory',eq:'<i>H</i> = −Σ <i>p</i> log<sub>2</sub> <i>p</i>',who:'Claude Shannon',yr:'1948',
+ w:'It measures information in bits, based on how surprising a message is.',
+ c:'Shannon showed how to send data reliably over noisy lines. Every text message, streaming video, QR code and Wi-Fi signal relies on his work.',
+ t:'A fair coin flip carries exactly 1 bit. A coin that always lands heads carries 0 bits, because you already knew the answer.'}
+];
+let idx=-1,start=0;const HOLD=17000;
+function show(){
+  const e=E[idx],st=document.getElementById('stage'),cd=document.getElementById('card');
+  st.innerHTML=`<div class="name">${e.n}</div><div class="eq${e.small?' small':''}">${e.eq}</div><div class="who">${e.who} <span>· ${e.yr}</span></div><div class="words">${e.w}</div>`;
+  cd.innerHTML=`<h3>What it changed</h3><p>${e.c}</p><div class="try"><h3>Try it</h3><p>${e.t}</p></div>`;
+  st.classList.remove('hide');cd.classList.remove('hide');
+  requestAnimationFrame(()=>st.querySelector('.eq').classList.add('write'));
+}
+function next(){document.getElementById('stage').classList.add('hide');document.getElementById('card').classList.add('hide');idx=(idx+1)%E.length;start=performance.now();setTimeout(show,800)}
+// chalkboard texture with faint eraser smudges
+const cv=document.getElementById('tex'),ctx=cv.getContext('2d');
+function tex(){const d=devicePixelRatio||1,W=innerWidth,H=innerHeight;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);
+  ctx.fillStyle='#1d2a23';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<26;i++){const x=Math.random()*W,y=Math.random()*H,r=80+Math.random()*260;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(255,255,255,.035)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r,r*.45,Math.random()*3,0,7);ctx.fill()}
+  for(let i=0;i<4000;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*.035})`;ctx.fillRect(Math.random()*W,Math.random()*H,1.5,1.5)}
+  ctx.fillStyle='rgba(243,241,231,.06)';ctx.font='italic 22px "Times New Roman",serif';
+  const ghosts=['x² + y²','∫ f(x) dx','Σ','√2','dy/dx','sin θ','π','∞','ln x','λ'];for(let i=0;i<14;i++){ctx.save();ctx.translate(Math.random()*W,Math.random()*H);ctx.rotate((Math.random()-.5)*.3);ctx.fillText(ghosts[i%ghosts.length],0,0);ctx.restore()}}
+addEventListener('resize',tex);tex();
+next();setInterval(()=>{if(performance.now()-start>HOLD)next()},500);
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();next()}if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}});
+addEventListener('click',next);
+let idleT;addEventListener('mousemove',()=>{document.body.classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>document.body.classList.add('idle'),3000)});
+</script>
+</body>
+</html>

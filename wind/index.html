@@ -155,7 +155,7 @@ function windAt(lon, lat, out){
 // Each particle remembers its last few positions, and the trail is redrawn
 // every frame with the oldest part faintest. Colors go from calm to gusty (mph).
 const BANDS = [[3,[70,130,200]],[7,[110,175,230]],[12,[170,215,240]],[18,[235,245,250]],[25,[255,215,120]],[1e9,[255,145,110]]];
-const TIERS = [0.2, 0.48, 0.95], TRAIL = 22;   // trail length in samples
+const TIERS = [0.2, 0.48, 0.95], TRAIL = 16;   // trail length in samples
 let P = [];
 function seed(){
   const n = Math.min(5000, Math.round(W*H/380));
@@ -174,7 +174,7 @@ function frame(t){
   fctx.clearRect(0,0,W,H);
   if (U){
     const k = S*0.013;       // pixels per second per mph
-    const sample = (++tick % 2) === 0;
+    const sample = (++tick % 3) === 0;
     for (const b of buckets) for (const a of b) a.length = 0;
     for (const p of P){
       windAt(lonOf(p.x), latOf(p.y), tmp);
@@ -186,17 +186,24 @@ function frame(t){
       // fade in at birth and out at death
       const life = Math.min(1, p.age/0.8, (p.life - p.age)/0.8);
       const fadeTier = life < 0.34 ? 0 : life < 0.67 ? 1 : 2;
-      for (let s = 1; s < p.n; s++){
-        const a = (p.h - s + 1 + TRAIL) % TRAIL, b = (p.h - s + TRAIL) % TRAIL;
-        const tier = Math.min(fadeTier, s < p.n/3 ? 2 : s < 2*p.n/3 ? 1 : 0);
-        buckets[bi][tier].push(p.hx[a], p.hy[a], p.hx[b], p.hy[b]);
+      // split the trail into three runs, newest brightest; each run is one continuous line
+      const third = (p.n - 1)/3;
+      for (let tier = 2; tier >= 0; tier--){
+        const s0 = Math.round((2 - tier)*third), s1 = Math.round((3 - tier)*third);
+        if (s1 <= s0) continue;
+        const run = buckets[bi][Math.min(fadeTier, tier)];
+        run.push(-1);   // marks the start of a run
+        for (let s = s0; s <= s1; s++){ const a = (p.h - s + TRAIL) % TRAIL; run.push(p.hx[a], p.hy[a]); }
       }
       if (p.age > p.life || p.x < -20 || p.y < -20 || p.x > W + 20 || p.y > H + 20) spawn(p);
     }
-    fctx.lineWidth = Math.max(1.1, H/800); fctx.lineCap = 'round';
+    fctx.lineWidth = Math.max(1.1, H/800); fctx.lineCap = 'butt'; fctx.lineJoin = 'miter';
     buckets.forEach((b, bi) => b.forEach((a, ti) => {
       if (!a.length) return;
-      fctx.beginPath(); for (let i = 0; i < a.length; i += 4){ fctx.moveTo(a[i], a[i+1]); fctx.lineTo(a[i+2], a[i+3]); }
+      fctx.beginPath();
+      for (let i = 0; i < a.length;){
+        if (a[i] === -1){ fctx.moveTo(a[i+1], a[i+2]); i += 3; } else { fctx.lineTo(a[i], a[i+1]); i += 2; }
+      }
       const c = BANDS[bi][1]; fctx.strokeStyle = 'rgba(' + c + ',' + TIERS[ti] + ')'; fctx.stroke();
     }));
   }

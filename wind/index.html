@@ -140,7 +140,7 @@ function caption(){
   const avg = Math.round(ss/n), steady = Math.hypot(su, sv)/ss > 0.5;
   const tm = new Date(fetchedAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   document.getElementById('info').textContent = 'Live · about ' + avg + ' mph' +
-    (steady ? ' from the ' + DIRS[Math.round(from/45) % 8] : ', shifting directions') + ' · data from ' + tm;
+    (steady ? ' from the ' + DIRS[Math.round(from/45) % 8] : ', shifting directions') + ' · Open-Meteo data from ' + tm;
 }
 function windAt(lon, lat, out){
   const gx = (lon - G.lon0)/G.dlon, gy = (lat - G.lat0)/G.dlat;

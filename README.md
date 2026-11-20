@@ -18,6 +18,9 @@ Each page is a full-screen science display that runs on its own. Every few secon
 | **Earth's History in One Day** | All 4.54 billion years of Earth's history squeezed into a 24-hour clock. The hand sweeps to 27 events, from Earth forming at midnight to the Industrial Revolution in the last 200th of a second. Includes Pennsylvania's coal and the rise of the Appalachians. | [Open](https://eric15774.github.io/screensavers/geologic-time/) |
 | **When This Light Left** | How long light takes to reach us from the Moon, the Sun, 18 stars and the Andromeda Galaxy, and what was happening on Earth when that light set out. The years are worked out from today's date. | [Open](https://eric15774.github.io/screensavers/starlight/) |
 | **Where in the World?** | A GeoGuessr-style game. A photo of one of 75 places fills the screen (landforms, volcanoes, glaciers, famous structures and a few Pennsylvania spots). Students click the map to guess. If nobody clicks, the map zooms in with three hints: the hemispheres, the latitude, then the country. Then it reveals the answer with a science fact, how far off the guess was, and points, and moves on. | [Open](https://eric15774.github.io/screensavers/where-in-the-world/) |
+| **Wind Over Pennsylvania** | A calm, wordless view of the wind across Pennsylvania right now. Thousands of glowing trails drift with the live wind, colored from calm blue to gusty gold. The values update every 3 hours and blend hour to hour, so the flow shifts slowly through the day. Only a small caption gives the average speed and direction. | [Open](https://eric15774.github.io/screensavers/wind/) |
+| **Rivers Breathing** | About 300 live USGS stream gauges across Pennsylvania, each a softly pulsing dot. Size shows how much water is passing, and color compares today's flow with the median for this date in past years (amber is low, green is normal, blue is high). Water drifts down the major rivers, faster where they run high. Every 14 seconds one gauge gets a quiet label with its name and flow. | [Open](https://eric15774.github.io/screensavers/rivers/) |
+| **The Living Sun** | NASA Solar Dynamics Observatory movies of the last 48 hours on the Sun, played slowly and crossfading through ten views, from visible-light sunspots to million-degree coronal loops. A one-line caption gives the wavelength and temperature, and a tiny dot shows Earth to scale. | [Open](https://eric15774.github.io/screensavers/living-sun/) |
 | **Constellations** | A star map that tours the 88 constellations. | [Open](https://eric15774.github.io/screensavers/constellations/) |
 
 ### Physics and chemistry
@@ -57,11 +60,14 @@ Each page is a full-screen science display that runs on its own. Every few secon
 | Click or **Space** | Skip to the next item (on Where in the World?, clicks on the map are guesses) |
 | **F** | Toggle full screen |
 
-The pages are built to run all day. The Solar System and Earthquake pages reload themselves every few hours so their data stays fresh.
+The pages are built to run all day. The live pages reload themselves every few hours so their data stays fresh.
 
 ## Good to know
 
-- **Internet:** Every page needs a connection to load. The earthquake page also checks the USGS feed every 5 minutes. If the connection drops, it keeps showing the last data it got.
+- **Internet:** Every page needs a connection to load. The earthquake page also checks the USGS feed every 5 minutes, and the rivers page checks the stream gauges every 15 minutes. If the connection drops, they keep showing the last data they got.
+- **Rivers:** "Normal" is the USGS median flow for today's date over each gauge's years of record. Only the major rivers are drawn as lines; most gauges sit on smaller streams.
+- **Wind:** The wind speeds are Open-Meteo's model values at 10 meters (about 33 feet) above the ground, sampled on a grid and smoothed between points. The trails move much faster than the real air so the pattern is easy to see.
+- **The Sun:** Each movie covers the last 48 hours and is played at half speed. The colors are added by NASA to tell the wavelengths apart; the ultraviolet views are light our eyes cannot see.
 - **Older computers:** The Mandelbrot zoom on the Fractals and Chaos page does heavy math in real time. On a slow classroom PC it may look choppy, but it still works.
 - **No setup:** Each screensaver is a single self-contained `index.html` file. There is nothing to install, and they work in any modern browser.
 - **Where in the World? photos:** Each photo is pulled live from Wikipedia, so it can change if someone edits the article. If a photo will not load, the page skips to another place.
@@ -71,6 +77,11 @@ The pages are built to run all day. The Solar System and Earthquake pages reload
 - **Star distances:** Distances to far-off stars like Betelgeuse, Polaris and Deneb are uncertain, and the cards give the range astronomers report.
 
 ## Data sources
+
+- Wind: [Open-Meteo](https://open-meteo.com/) forecast API (free, no key), CC BY 4.0
+- Stream gauges: [USGS Water Data APIs](https://api.waterdata.usgs.gov/), latest continuous values and day-of-year median statistics
+- The Sun: [NASA Solar Dynamics Observatory](https://sdo.gsfc.nasa.gov/data/) latest 48-hour movies (AIA and HMI)
+- Pennsylvania maps: state lines from [us-atlas](https://github.com/topojson/us-atlas) (U.S. Census Bureau), rivers from [Natural Earth](https://www.naturalearthdata.com/) 1:10m
 
 - Earthquakes: [USGS Earthquake Hazards Program](https://earthquake.usgs.gov/earthquakes/feed/) live GeoJSON feed
 - Plate boundaries: Peter Bird (2003), *An updated digital model of plate boundaries*, via [fraxen/tectonicplates](https://github.com/fraxen/tectonicplates)

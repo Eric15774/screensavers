@@ -85,7 +85,7 @@ function tidy(n){
   // "ALLEGHENY RIVER AT KITTANNING, PA" -> "Allegheny River at Kittanning"
   n = (n || '').replace(/,\s*(PA|Pa\.?)$/,'').replace(/\bCr\b\.?/g,'Creek').replace(/\bR\b\.?/g,'River').replace(/\bbl\b/g,'below').replace(/\bnr\b/g,'near');
   if (n === n.toUpperCase()) n = n.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/\b(At|Near|Below|Above|Of|And|The|In|On)\b/g, w => w.toLowerCase());
-  return n;
+  return n.replace(/,?\s*\b(Ny|Nj|Md|Oh|Wv|De)$/, (m, st) => ', ' + st.toUpperCase());
 }
 async function loadLive(){
   try {

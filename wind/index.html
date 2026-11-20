@@ -152,41 +152,53 @@ function windAt(lon, lat, out){
 }
 
 // ---------- particles ----------
-// Colors from calm to gusty (mph): deep blue, sky, ice, white, gold, coral
-const BANDS = [[3,'rgba(70,130,200,0.55)'],[7,'rgba(110,175,230,0.65)'],[12,'rgba(170,215,240,0.75)'],[18,'rgba(235,245,250,0.85)'],[25,'rgba(255,215,120,0.9)'],[1e9,'rgba(255,145,110,0.95)']];
+// Each particle remembers its last few positions, and the trail is redrawn
+// every frame with the oldest part faintest. Colors go from calm to gusty (mph).
+const BANDS = [[3,[70,130,200]],[7,[110,175,230]],[12,[170,215,240]],[18,[235,245,250]],[25,[255,215,120]],[1e9,[255,145,110]]];
+const TIERS = [0.18, 0.42, 0.85], TRAIL = 12;   // trail length in samples
 let P = [];
 function seed(){
-  const n = Math.min(7000, Math.round(W*H/320));
-  P = new Array(n); for (let i = 0; i < n; i++) P[i] = spawn({});
-  fctx.clearRect(0,0,W,H);
+  const n = Math.min(4500, Math.round(W*H/420));
+  P = new Array(n); for (let i = 0; i < n; i++) spawn(P[i] = {hx: new Float32Array(TRAIL), hy: new Float32Array(TRAIL)}, true);
 }
-function spawn(p){ p.x = Math.random()*W; p.y = Math.random()*H; p.age = 0; p.life = 2 + Math.random()*6; return p; }
-const tmp = [0,0], paths = BANDS.map(() => []);
-let last = 0, lastBlend = 0;
+function spawn(p, initial){
+  p.x = Math.random()*W; p.y = Math.random()*H; p.age = initial ? Math.random()*4 : 0; p.life = 3 + Math.random()*6;
+  p.hx.fill(p.x); p.hy.fill(p.y); p.h = 0; p.n = 1; p.band = 0;
+}
+const tmp = [0,0];
+const buckets = BANDS.map(() => TIERS.map(() => []));
+let last = 0, lastBlend = 0, tick = 0;
 function frame(t){
   const dt = Math.min(0.05, (t - (last || t))/1000); last = t;
   if (t - lastBlend > 30000){ blend(); lastBlend = t; }
-  // fade old trails
-  fctx.globalCompositeOperation = 'destination-in'; fctx.fillStyle = 'rgba(0,0,0,0.93)'; fctx.fillRect(0,0,W,H);
-  fctx.globalCompositeOperation = 'source-over';
+  fctx.clearRect(0,0,W,H);
   if (U){
     const k = S*0.01;        // pixels per second per mph
-    for (const b of paths) b.length = 0;
+    const sample = (++tick % 2) === 0;
+    for (const b of buckets) for (const a of b) a.length = 0;
     for (const p of P){
       windAt(lonOf(p.x), latOf(p.y), tmp);
       const sp = Math.hypot(tmp[0], tmp[1]);
-      const nx = p.x + tmp[0]*k*dt, ny = p.y - tmp[1]*k*dt;
-      let bi = 0; while (sp > BANDS[bi][0]) bi++;
-      paths[bi].push(p.x, p.y, nx, ny);
-      p.x = nx; p.y = ny; p.age += dt;
-      if (p.age > p.life || p.x < 0 || p.y < 0 || p.x > W || p.y > H || sp < 0.2) spawn(p);
+      p.x += tmp[0]*k*dt; p.y -= tmp[1]*k*dt; p.age += dt;
+      let bi = 0; while (sp > BANDS[bi][0]) bi++; p.band = bi;
+      if (sample){ p.h = (p.h + 1) % TRAIL; p.n = Math.min(TRAIL, p.n + 1); }
+      p.hx[p.h] = p.x; p.hy[p.h] = p.y;
+      // fade in at birth and out at death
+      const life = Math.min(1, p.age/0.8, (p.life - p.age)/0.8);
+      const fadeTier = life < 0.34 ? 0 : life < 0.67 ? 1 : 2;
+      for (let s = 1; s < p.n; s++){
+        const a = (p.h - s + 1 + TRAIL) % TRAIL, b = (p.h - s + TRAIL) % TRAIL;
+        const tier = Math.min(fadeTier, s < p.n/3 ? 2 : s < 2*p.n/3 ? 1 : 0);
+        buckets[bi][tier].push(p.hx[a], p.hy[a], p.hx[b], p.hy[b]);
+      }
+      if (p.age > p.life || p.x < -20 || p.y < -20 || p.x > W + 20 || p.y > H + 20) spawn(p);
     }
-    fctx.lineWidth = Math.max(1, H/900); fctx.lineCap = 'round';
-    paths.forEach((a, bi) => {
+    fctx.lineWidth = Math.max(1.1, H/800); fctx.lineCap = 'round';
+    buckets.forEach((b, bi) => b.forEach((a, ti) => {
       if (!a.length) return;
       fctx.beginPath(); for (let i = 0; i < a.length; i += 4){ fctx.moveTo(a[i], a[i+1]); fctx.lineTo(a[i+2], a[i+3]); }
-      fctx.strokeStyle = BANDS[bi][1]; fctx.stroke();
-    });
+      const c = BANDS[bi][1]; fctx.strokeStyle = 'rgba(' + c + ',' + TIERS[ti] + ')'; fctx.stroke();
+    }));
   }
   requestAnimationFrame(frame);
 }

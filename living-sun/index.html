@@ -9,9 +9,10 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:"Sego
 body.idle{cursor:none}
 #stage{position:fixed;left:50%;top:50%;width:min(96vh,96vw);height:min(96vh,96vw);transform:translate(-50%,-50%)}
 video,img.still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 5s ease;
-  -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0,#000 44%,rgba(0,0,0,.6) 47.5%,transparent 52%);
-  mask-image:radial-gradient(circle at 50% 50%,#000 0,#000 44%,rgba(0,0,0,.6) 47.5%,transparent 52%)}
+  -webkit-mask-image:radial-gradient(circle closest-side at 50% 50%,#000 0,#000 80%,rgba(0,0,0,.55) 90%,transparent 99%);
+  mask-image:radial-gradient(circle closest-side at 50% 50%,#000 0,#000 80%,rgba(0,0,0,.55) 90%,transparent 99%)}
 .on{opacity:1!important}
+.hmi{transform:scale(.82)}
 #breathe{position:absolute;inset:0;animation:breathe 40s ease-in-out infinite}
 @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
 #cap{position:fixed;left:2.4vw;bottom:2.2vh;color:#e9dcc9;opacity:.55;line-height:1.35;pointer-events:none;transition:opacity 2s}
@@ -55,6 +56,7 @@ function show(){
   let done = false;
   const reveal = (el) => {
     if (done) return; done = true;
+    if (code.startsWith('HMI')) el.classList.add('hmi');   // HMI frames show the disk larger, so shrink to match
     box.appendChild(el);
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
     const old = cur; cur = el;

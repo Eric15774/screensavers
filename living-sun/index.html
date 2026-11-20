@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Living Sun</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+body.idle{cursor:none}
+#stage{position:fixed;left:50%;top:50%;width:min(96vh,96vw);height:min(96vh,96vw);transform:translate(-50%,-50%)}
+video,img.still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 5s ease;
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0,#000 44%,rgba(0,0,0,.6) 47.5%,transparent 52%);
+  mask-image:radial-gradient(circle at 50% 50%,#000 0,#000 44%,rgba(0,0,0,.6) 47.5%,transparent 52%)}
+.on{opacity:1!important}
+#breathe{position:absolute;inset:0;animation:breathe 40s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+#cap{position:fixed;left:2.4vw;bottom:2.2vh;color:#e9dcc9;opacity:.55;line-height:1.35;pointer-events:none;transition:opacity 2s}
+#cap b{display:block;font-weight:600;font-size:clamp(14px,1.25vw,22px);letter-spacing:.02em}
+#cap span{font-size:clamp(11px,.9vw,16px);color:#b9a993}
+#earth{position:fixed;right:3vw;bottom:3vh;display:flex;align-items:center;gap:.6em;color:#9fb4d6;opacity:.6;font-size:clamp(11px,.85vw,15px);pointer-events:none}
+#dot{border-radius:50%;background:radial-gradient(circle at 35% 35%,#9fd3ff,#2a6fd6 60%,#0d2c66)}
+</style>
+</head>
+<body>
+<div id="stage"><div id="breathe"></div></div>
+<div id="cap"><b id="t1">The Sun, the last 48 hours</b><span id="t2">From NASA's Solar Dynamics Observatory</span></div>
+<div id="earth"><div id="dot"></div><span>Earth, to scale</span></div>
+<script>
+// The Living Sun: NASA Solar Dynamics Observatory movies of the last 48 hours,
+// shown slowly, one wavelength at a time, crossfading from one to the next.
+// SDO posts new movies through the day; the page fetches fresh copies each time a view comes around.
+// Click or Space: next view. F: full screen.
+const BASE = 'https://sdo.gsfc.nasa.gov/assets/img/latest/';
+const VIEWS = [
+  ['0171', '171 Å · about 600,000 °C', 'Glowing loops of gas follow the magnetic field above the surface'],
+  ['0304', '304 Å · about 50,000 °C', 'The chromosphere, with prominences arching off the edge'],
+  ['0193', '193 Å · about 1 million °C', 'The corona. Dark patches are coronal holes, where the solar wind escapes'],
+  ['HMIIC', 'Visible light · about 5,500 °C', 'The surface we see from Earth. Dark spots are sunspots'],
+  ['0211', '211 Å · about 2 million °C', 'Hot active regions over the sunspots'],
+  ['0131', '131 Å · up to 10 million °C', 'The hottest gas, where solar flares erupt'],
+  ['1600', '1600 Å · about 10,000 °C', 'Just above the surface, bright where the magnetic field is strong'],
+  ['0094', '94 Å · about 6 million °C', 'Very hot gas in flaring regions'],
+  ['HMIB', 'Magnetic field', 'White points toward us and black points away. Sunspots sit where they meet'],
+  ['0335', '335 Å · about 2.5 million °C', 'Active regions in the corona'],
+];
+const VIEW_MS = 80000, RATE = 0.5;
+const box = document.getElementById('breathe');
+let idx = Math.floor(Math.random()*VIEWS.length), cur = null, timer = null;
+const cacheTag = () => Math.floor(Date.now()/(30*60e3));   // new copy at most every 30 minutes
+
+function show(){
+  const [code, line1, line2] = VIEWS[idx];
+  const v = document.createElement('video');
+  v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.crossOrigin = null;
+  let done = false;
+  const reveal = (el) => {
+    if (done) return; done = true;
+    box.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
+    const old = cur; cur = el;
+    if (old){ old.classList.remove('on'); setTimeout(() => old.remove(), 5500); }
+    setCap(line1, line2);
+  };
+  v.addEventListener('canplay', () => { v.playbackRate = RATE; v.play().catch(() => {}); reveal(v); }, {once: true});
+  v.addEventListener('error', () => {           // movie missing: fall back to the latest still image
+    const img = new Image(); img.className = 'still';
+    img.onload = () => reveal(img);
+    img.onerror = () => { done = true; next(); };
+    img.src = BASE + 'latest_1024_' + code + '.jpg?' + cacheTag();
+  }, {once: true});
+  v.src = BASE + 'mpeg/latest_1024_' + code + '.mp4?' + cacheTag();
+  v.load();
+  clearTimeout(timer); timer = setTimeout(next, VIEW_MS);
+}
+function next(){ idx = (idx + 1) % VIEWS.length; show(); }
+function setCap(a, b){
+  const cap = document.getElementById('cap'); cap.style.opacity = 0;
+  setTimeout(() => { document.getElementById('t1').textContent = a; document.getElementById('t2').textContent = b; cap.style.opacity = .55; }, 1800);
+}
+function sizeEarth(){
+  // In SDO's 1024 frames the Sun's disk spans about 79% of the width; Earth is 1/109 of the Sun's diameter.
+  const st = document.getElementById('stage').getBoundingClientRect().width;
+  const d = Math.max(3, st*0.79/109);
+  const dot = document.getElementById('dot'); dot.style.width = dot.style.height = d + 'px';
+}
+
+document.addEventListener('click', next);
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space'){ e.preventDefault(); next(); }
+  else if (e.key === 'f' || e.key === 'F'){ if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen(); }
+});
+let idleT; function wake(){ document.body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add('idle'), 3000); }
+addEventListener('mousemove', wake); wake();
+addEventListener('resize', sizeEarth);
+sizeEarth(); show();
+setTimeout(() => location.reload(), 12*3600e3);
+</script>
+</body>
+</html>

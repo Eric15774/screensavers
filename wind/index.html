@@ -155,10 +155,10 @@ function windAt(lon, lat, out){
 // Each particle remembers its last few positions, and the trail is redrawn
 // every frame with the oldest part faintest. Colors go from calm to gusty (mph).
 const BANDS = [[3,[70,130,200]],[7,[110,175,230]],[12,[170,215,240]],[18,[235,245,250]],[25,[255,215,120]],[1e9,[255,145,110]]];
-const TIERS = [0.18, 0.42, 0.85], TRAIL = 12;   // trail length in samples
+const TIERS = [0.2, 0.48, 0.95], TRAIL = 22;   // trail length in samples
 let P = [];
 function seed(){
-  const n = Math.min(4500, Math.round(W*H/420));
+  const n = Math.min(5000, Math.round(W*H/380));
   P = new Array(n); for (let i = 0; i < n; i++) spawn(P[i] = {hx: new Float32Array(TRAIL), hy: new Float32Array(TRAIL)}, true);
 }
 function spawn(p, initial){
@@ -173,7 +173,7 @@ function frame(t){
   if (t - lastBlend > 30000){ blend(); lastBlend = t; }
   fctx.clearRect(0,0,W,H);
   if (U){
-    const k = S*0.01;        // pixels per second per mph
+    const k = S*0.013;       // pixels per second per mph
     const sample = (++tick % 2) === 0;
     for (const b of buckets) for (const a of b) a.length = 0;
     for (const p of P){

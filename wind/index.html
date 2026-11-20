@@ -192,7 +192,7 @@ function frame(t){
         const s0 = Math.round((2 - tier)*third), s1 = Math.round((3 - tier)*third);
         if (s1 <= s0) continue;
         const run = buckets[bi][Math.min(fadeTier, tier)];
-        run.push(-1);   // marks the start of a run
+        run.push(-1e9);   // marks the start of a run
         for (let s = s0; s <= s1; s++){ const a = (p.h - s + TRAIL) % TRAIL; run.push(p.hx[a], p.hy[a]); }
       }
       if (p.age > p.life || p.x < -20 || p.y < -20 || p.x > W + 20 || p.y > H + 20) spawn(p);
@@ -202,7 +202,7 @@ function frame(t){
       if (!a.length) return;
       fctx.beginPath();
       for (let i = 0; i < a.length;){
-        if (a[i] === -1){ fctx.moveTo(a[i+1], a[i+2]); i += 3; } else { fctx.lineTo(a[i], a[i+1]); i += 2; }
+        if (a[i] === -1e9){ fctx.moveTo(a[i+1], a[i+2]); i += 3; } else { fctx.lineTo(a[i], a[i+1]); i += 2; }
       }
       const c = BANDS[bi][1]; fctx.strokeStyle = 'rgba(' + c + ',' + TIERS[ti] + ')'; fctx.stroke();
     }));

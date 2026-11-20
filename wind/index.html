@@ -156,9 +156,9 @@ function windAt(lon, lat, out){
 // every frame with the oldest part faintest. Colors go from calm to gusty (mph).
 const BANDS = [[3,[70,130,200]],[7,[110,175,230]],[12,[170,215,240]],[18,[235,245,250]],[25,[255,215,120]],[1e9,[255,145,110]]];
 const TIERS = [0.2, 0.48, 0.95], TRAIL = 16;   // trail length in samples
-let P = [];
+let P = [], quality = 1;   // quality drops on slow computers
 function seed(){
-  const n = Math.min(5000, Math.round(W*H/380));
+  const n = Math.round(Math.min(3000, W*H/380)*quality);
   P = new Array(n); for (let i = 0; i < n; i++) spawn(P[i] = {hx: new Float32Array(TRAIL), hy: new Float32Array(TRAIL)}, true);
 }
 function spawn(p, initial){
@@ -167,10 +167,19 @@ function spawn(p, initial){
 }
 const tmp = [0,0];
 const buckets = BANDS.map(() => TIERS.map(() => []));
-let last = 0, lastBlend = 0, tick = 0;
+let last = 0, lastBlend = 0, tick = 0, fpsN = 0, fpsT = 0;
+function checkSpeed(t){
+  // every 5 seconds: if the page is running below about 24 frames a second, use fewer particles
+  if (!fpsT) fpsT = t; fpsN++;
+  if (t - fpsT > 5000){
+    const fps = fpsN*1000/(t - fpsT); fpsN = 0; fpsT = t;
+    if (fps < 24 && quality > 0.3 && !document.hidden){ quality *= 0.75; P.length = Math.round(P.length*0.75); }
+  }
+}
 function frame(t){
   const dt = Math.min(0.05, (t - (last || t))/1000); last = t;
   if (t - lastBlend > 30000){ blend(); lastBlend = t; }
+  checkSpeed(t);
   fctx.clearRect(0,0,W,H);
   if (U){
     const k = S*0.013;       // pixels per second per mph
